@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "983682550940",
+    "project_id": "booksearch-63560",
+    "storage_bucket": "booksearch-63560.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:983682550940:android:ea66a1df1202f4a8bff159",
+        "android_client_info": {
+          "package_name": "com.example.book_search.tim_kiem_sach"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "983682550940-motsp0mdt12a6oueuu6ugqam6etg04f6.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.book_search.tim_kiem_sach",
+            "certificate_hash": "41f8843a575e5d63fa7d9143f93ca1cea3aad78f"
+          }
+        },
+        {
+          "client_id": "983682550940-oh3e72o8erchubk9bhvekt4juj8oagkn.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDsgdXvZxC20zAr_KWca2E-ZhQSWSxU_Bo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "983682550940-oh3e72o8erchubk9bhvekt4juj8oagkn.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
