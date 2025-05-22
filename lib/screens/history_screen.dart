@@ -161,11 +161,21 @@ class HistoryScreen extends StatelessWidget {
                   children: [
                     Icon(Icons.access_time, size: 14),
                     SizedBox(width: 4),
-                    Text(dateFormat.format(history.timestamp)),
-                    SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        dateFormat.format(history.timestamp),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    SizedBox(width: 8),
                     Icon(Icons.book, size: 14),
                     SizedBox(width: 4),
-                    Text('${history.resultCount} kết quả'),
+                    Expanded(
+                      child: Text(
+                        '${history.resultCount} kết quả',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                   ],
                 ),
                 trailing: Icon(Icons.arrow_forward_ios, size: 16),

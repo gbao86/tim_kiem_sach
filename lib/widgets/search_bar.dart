@@ -23,9 +23,18 @@ class CustomSearchBar extends StatelessWidget {
         decoration: InputDecoration(
           hintText: hintText, // Sử dụng hintText từ tham số
           prefixIcon: const Icon(Icons.search),
-          suffixIcon: IconButton(
-            icon: const Icon(Icons.clear),
-            onPressed: () => controller.clear(),
+          suffixIcon: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.clear),
+                onPressed: () => controller.clear(),
+              ),
+              IconButton(
+                icon: const Icon(Icons.search),
+                onPressed: () => onSearch(controller.text),
+              ),
+            ],
           ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(30),

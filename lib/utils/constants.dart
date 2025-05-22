@@ -1,7 +1,7 @@
 class Constants {
   // API
   static const String googleBooksBaseUrl = 'https://www.googleapis.com/books/v1/volumes';
-  static const int maxResults = 20;
+  static const int maxResults = 40;
 
   // Firestore collections
   static const String usersCollection = 'users';
