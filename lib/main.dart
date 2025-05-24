@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -16,6 +17,19 @@ import 'screens/admin_traffic_screen.dart';
 import 'utils/theme_provider.dart';
 import 'services/auth_service.dart';
 import 'widgets/bottom_navigation.dart';
+import 'screens/admin_traffic_screen.dart';
+
+Future<void> logAppOpenEvent() async {
+  try {
+    await FirebaseFirestore.instance.collection('app_traffic').add({
+      'event_type': 'app_open',
+      'timestamp': FieldValue.serverTimestamp(),
+    });
+    print('Logged app open event to Firestore.');
+  } catch (e) {
+    print('Error logging app open event: $e');
+  }
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

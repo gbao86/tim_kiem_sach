@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:cloud_functions/cloud_functions.dart';
+import '../services/admin_service.dart';
 import '../services/auth_service.dart';
 import '../widgets/loading_indicator.dart';
 
@@ -17,6 +17,7 @@ class _AdminNotificationScreenState extends State<AdminNotificationScreen> {
   final _bodyController = TextEditingController();
   bool _isLoading = false;
   bool _isAdmin = false;
+  String? _target = 'all'; // 'all' hoặc 'specific' (tùy chọn trong tương lai)
 
   @override
   void initState() {
@@ -42,14 +43,14 @@ class _AdminNotificationScreenState extends State<AdminNotificationScreen> {
     });
 
     try {
-      final callable = FirebaseFunctions.instance.httpsCallable('sendNotification');
-      await callable.call({
-        'title': _titleController.text,
-        'body': _bodyController.text,
-      });
+      final adminService = AdminService();
+      await adminService.sendNotificationToAll(
+        _titleController.text,
+        _bodyController.text,
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Thông báo đã được gửi')),
+          const SnackBar(content: Text('Thông báo đã được gửi đến tất cả người dùng')),
         );
         _titleController.clear();
         _bodyController.clear();
@@ -124,7 +125,7 @@ class _AdminNotificationScreenState extends State<AdminNotificationScreen> {
                   ? const Center(child: LoadingIndicator())
                   : ElevatedButton(
                 onPressed: _sendNotification,
-                child: const Text('Gửi thông báo'),
+                child: const Text('Gửi thông báo đến tất cả'),
               ),
             ],
           ),
