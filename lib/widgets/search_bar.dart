@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 class CustomSearchBar extends StatelessWidget {
   final TextEditingController controller;
-  final void Function(String) onSearch; // Thay đổi thành void Function(String)
-  final String hintText; // Thêm tham số hintText
+  final void Function(String) onSearch;
+  final String hintText;
 
   const CustomSearchBar({
     Key? key,
@@ -19,9 +19,9 @@ class CustomSearchBar extends StatelessWidget {
       child: TextField(
         controller: controller,
         textInputAction: TextInputAction.search,
-        onSubmitted: (value) => onSearch(value), // Gọi onSearch với giá trị nhập
+        onSubmitted: (value) => onSearch(value),
         decoration: InputDecoration(
-          hintText: hintText, // Sử dụng hintText từ tham số
+          hintText: hintText,
           prefixIcon: const Icon(Icons.search),
           suffixIcon: Row(
             mainAxisSize: MainAxisSize.min,

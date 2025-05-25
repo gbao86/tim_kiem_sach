@@ -1,0 +1,359 @@
+Folder structure for d:\App\tim_kiem_sach
+
+tim_kiem_sach/
+├── android/
+│   ├── app/
+│   │   ├── src/
+│   │   │   ├── debug/
+│   │   │   │   └── AndroidManifest.xml
+│   │   │   ├── main/
+│   │   │   │   ├── java/
+│   │   │   │   │   └── io/
+│   │   │   │   │   │   └── flutter/
+│   │   │   │   │   │   │   └── plugins/
+│   │   │   │   │   │   │   │   └── GeneratedPluginRegistrant.java
+│   │   │   │   ├── kotlin/
+│   │   │   │   │   └── com/
+│   │   │   │   │   │   └── example/
+│   │   │   │   │   │   │   └── book_search/
+│   │   │   │   │   │   │   │   └── tim_kiem_sach/
+│   │   │   │   │   │   │   │   │   └── MainActivity.kt
+│   │   │   │   ├── res/
+│   │   │   │   │   ├── drawable/
+│   │   │   │   │   │   └── launch_background.xml
+│   │   │   │   │   ├── drawable-v21/
+│   │   │   │   │   │   └── launch_background.xml
+│   │   │   │   │   ├── IconKitchen-Output/
+│   │   │   │   │   │   ├── android/
+│   │   │   │   │   │   │   ├── res/
+│   │   │   │   │   │   │   └── play_store_512.png
+│   │   │   │   │   │   ├── ios/
+│   │   │   │   │   │   │   ├── AppIcon-20@2x.png
+│   │   │   │   │   │   │   ├── AppIcon-20@2x~ipad.png
+│   │   │   │   │   │   │   ├── AppIcon-20@3x.png
+│   │   │   │   │   │   │   ├── AppIcon-20~ipad.png
+│   │   │   │   │   │   │   ├── AppIcon-29.png
+│   │   │   │   │   │   │   ├── AppIcon-29@2x.png
+│   │   │   │   │   │   │   ├── AppIcon-29@2x~ipad.png
+│   │   │   │   │   │   │   ├── AppIcon-29@3x.png
+│   │   │   │   │   │   │   ├── AppIcon-29~ipad.png
+│   │   │   │   │   │   │   ├── AppIcon-40@2x.png
+│   │   │   │   │   │   │   ├── AppIcon-40@2x~ipad.png
+│   │   │   │   │   │   │   ├── AppIcon-40@3x.png
+│   │   │   │   │   │   │   ├── AppIcon-40~ipad.png
+│   │   │   │   │   │   │   ├── AppIcon-60@2x~car.png
+│   │   │   │   │   │   │   ├── AppIcon-60@3x~car.png
+│   │   │   │   │   │   │   ├── AppIcon-83.5@2x~ipad.png
+│   │   │   │   │   │   │   ├── AppIcon@2x.png
+│   │   │   │   │   │   │   ├── AppIcon@2x~ipad.png
+│   │   │   │   │   │   │   ├── AppIcon@3x.png
+│   │   │   │   │   │   │   ├── AppIcon~ios-marketing.png
+│   │   │   │   │   │   │   ├── AppIcon~ipad.png
+│   │   │   │   │   │   │   └── Contents.json
+│   │   │   │   │   │   └── web/
+│   │   │   │   │   │   │   ├── apple-touch-icon.png
+│   │   │   │   │   │   │   ├── favicon.ico
+│   │   │   │   │   │   │   ├── icon-192-maskable.png
+│   │   │   │   │   │   │   ├── icon-192.png
+│   │   │   │   │   │   │   ├── icon-512-maskable.png
+│   │   │   │   │   │   │   ├── icon-512.png
+│   │   │   │   │   │   │   └── README.txt
+│   │   │   │   │   ├── mipmap-anydpi-v26/
+│   │   │   │   │   │   └── book_app_icon.xml
+│   │   │   │   │   ├── mipmap-hdpi/
+│   │   │   │   │   │   ├── book_app_icon_background.png
+│   │   │   │   │   │   ├── book_app_icon_foreground.png
+│   │   │   │   │   │   ├── book_app_icon_monochrome.png
+│   │   │   │   │   │   └── book_app_icon.png
+│   │   │   │   │   ├── mipmap-mdpi/
+│   │   │   │   │   │   ├── book_app_icon_background.png
+│   │   │   │   │   │   ├── book_app_icon_foreground.png
+│   │   │   │   │   │   ├── book_app_icon_monochrome.png
+│   │   │   │   │   │   └── book_app_icon.png
+│   │   │   │   │   ├── mipmap-xhdpi/
+│   │   │   │   │   │   ├── book_app_icon_background.png
+│   │   │   │   │   │   ├── book_app_icon_foreground.png
+│   │   │   │   │   │   ├── book_app_icon_monochrome.png
+│   │   │   │   │   │   └── book_app_icon.png
+│   │   │   │   │   ├── mipmap-xxhdpi/
+│   │   │   │   │   │   ├── book_app_icon_background.png
+│   │   │   │   │   │   ├── book_app_icon_foreground.png
+│   │   │   │   │   │   ├── book_app_icon_monochrome.png
+│   │   │   │   │   │   └── book_app_icon.png
+│   │   │   │   │   ├── mipmap-xxxhdpi/
+│   │   │   │   │   │   ├── book_app_icon_background.png
+│   │   │   │   │   │   ├── book_app_icon_foreground.png
+│   │   │   │   │   │   ├── book_app_icon_monochrome.png
+│   │   │   │   │   │   └── book_app_icon.png
+│   │   │   │   │   ├── values/
+│   │   │   │   │   │   └── styles.xml
+│   │   │   │   │   └── values-night/
+│   │   │   │   │   │   └── styles.xml
+│   │   │   │   └── AndroidManifest.xml
+│   │   │   └── profile/
+│   │   │   │   └── AndroidManifest.xml
+│   │   ├── build.gradle.kts
+│   │   └── google-services.json
+│   ├── gradle/
+│   │   └── wrapper/
+│   │   │   ├── gradle-wrapper.jar
+│   │   │   └── gradle-wrapper.properties
+│   ├── build.gradle.kts
+│   ├── gradle.properties
+│   ├── gradlew
+│   ├── gradlew.bat
+│   ├── local.properties
+│   └── settings.gradle.kts
+├── assets/
+│   └── images/
+├── fonts/
+│   ├── Roboto_Condensed-Black.ttf
+│   ├── Roboto_Condensed-BlackItalic.ttf
+│   ├── Roboto_Condensed-Bold.ttf
+│   ├── Roboto_Condensed-BoldItalic.ttf
+│   ├── Roboto_Condensed-ExtraBold.ttf
+│   ├── Roboto_Condensed-ExtraBoldItalic.ttf
+│   ├── Roboto_Condensed-ExtraLight.ttf
+│   ├── Roboto_Condensed-ExtraLightItalic.ttf
+│   ├── Roboto_Condensed-Italic.ttf
+│   ├── Roboto_Condensed-Light.ttf
+│   ├── Roboto_Condensed-LightItalic.ttf
+│   ├── Roboto_Condensed-Medium.ttf
+│   ├── Roboto_Condensed-MediumItalic.ttf
+│   ├── Roboto_Condensed-Regular.ttf
+│   ├── Roboto_Condensed-SemiBold.ttf
+│   ├── Roboto_Condensed-SemiBoldItalic.ttf
+│   ├── Roboto_Condensed-Thin.ttf
+│   ├── Roboto_Condensed-ThinItalic.ttf
+│   ├── Roboto_SemiCondensed-Black.ttf
+│   ├── Roboto_SemiCondensed-BlackItalic.ttf
+│   ├── Roboto_SemiCondensed-Bold.ttf
+│   ├── Roboto_SemiCondensed-BoldItalic.ttf
+│   ├── Roboto_SemiCondensed-ExtraBold.ttf
+│   ├── Roboto_SemiCondensed-ExtraBoldItalic.ttf
+│   ├── Roboto_SemiCondensed-ExtraLight.ttf
+│   ├── Roboto_SemiCondensed-ExtraLightItalic.ttf
+│   ├── Roboto_SemiCondensed-Italic.ttf
+│   ├── Roboto_SemiCondensed-Light.ttf
+│   ├── Roboto_SemiCondensed-LightItalic.ttf
+│   ├── Roboto_SemiCondensed-Medium.ttf
+│   ├── Roboto_SemiCondensed-MediumItalic.ttf
+│   ├── Roboto_SemiCondensed-Regular.ttf
+│   ├── Roboto_SemiCondensed-SemiBold.ttf
+│   ├── Roboto_SemiCondensed-SemiBoldItalic.ttf
+│   ├── Roboto_SemiCondensed-Thin.ttf
+│   ├── Roboto_SemiCondensed-ThinItalic.ttf
+│   ├── Roboto-Black.ttf
+│   ├── Roboto-BlackItalic.ttf
+│   ├── Roboto-Bold.ttf
+│   ├── Roboto-BoldItalic.ttf
+│   ├── Roboto-ExtraBold.ttf
+│   ├── Roboto-ExtraBoldItalic.ttf
+│   ├── Roboto-ExtraLight.ttf
+│   ├── Roboto-ExtraLightItalic.ttf
+│   ├── Roboto-Italic.ttf
+│   ├── Roboto-Light.ttf
+│   ├── Roboto-LightItalic.ttf
+│   ├── Roboto-Medium.ttf
+│   ├── Roboto-MediumItalic.ttf
+│   ├── Roboto-Regular.ttf
+│   ├── Roboto-SemiBold.ttf
+│   ├── Roboto-SemiBoldItalic.ttf
+│   ├── Roboto-Thin.ttf
+│   └── Roboto-ThinItalic.ttf
+├── functions/
+│   ├── index.js
+│   ├── package-lock.json
+│   └── package.json
+├── ios/
+│   ├── Flutter/
+│   │   ├── AppFrameworkInfo.plist
+│   │   ├── Debug.xcconfig
+│   │   ├── flutter_export_environment.sh
+│   │   ├── Generated.xcconfig
+│   │   └── Release.xcconfig
+│   ├── Runner/
+│   │   ├── Assets.xcassets/
+│   │   │   ├── AppIcon.appiconset/
+│   │   │   │   ├── Contents.json
+│   │   │   │   ├── Icon-App-1024x1024@1x.png
+│   │   │   │   ├── Icon-App-20x20@1x.png
+│   │   │   │   ├── Icon-App-20x20@2x.png
+│   │   │   │   ├── Icon-App-20x20@3x.png
+│   │   │   │   ├── Icon-App-29x29@1x.png
+│   │   │   │   ├── Icon-App-29x29@2x.png
+│   │   │   │   ├── Icon-App-29x29@3x.png
+│   │   │   │   ├── Icon-App-40x40@1x.png
+│   │   │   │   ├── Icon-App-40x40@2x.png
+│   │   │   │   ├── Icon-App-40x40@3x.png
+│   │   │   │   ├── Icon-App-60x60@2x.png
+│   │   │   │   ├── Icon-App-60x60@3x.png
+│   │   │   │   ├── Icon-App-76x76@1x.png
+│   │   │   │   ├── Icon-App-76x76@2x.png
+│   │   │   │   └── Icon-App-83.5x83.5@2x.png
+│   │   │   └── LaunchImage.imageset/
+│   │   │   │   ├── Contents.json
+│   │   │   │   ├── LaunchImage.png
+│   │   │   │   ├── LaunchImage@2x.png
+│   │   │   │   ├── LaunchImage@3x.png
+│   │   │   │   └── README.md
+│   │   ├── Base.lproj/
+│   │   │   ├── LaunchScreen.storyboard
+│   │   │   └── Main.storyboard
+│   │   ├── AppDelegate.swift
+│   │   ├── GeneratedPluginRegistrant.h
+│   │   ├── GeneratedPluginRegistrant.m
+│   │   ├── Info.plist
+│   │   └── Runner-Bridging-Header.h
+│   ├── Runner.xcodeproj/
+│   │   ├── project.xcworkspace/
+│   │   │   ├── xcshareddata/
+│   │   │   │   ├── IDEWorkspaceChecks.plist
+│   │   │   │   └── WorkspaceSettings.xcsettings
+│   │   │   └── contents.xcworkspacedata
+│   │   ├── xcshareddata/
+│   │   │   └── xcschemes/
+│   │   │   │   └── Runner.xcscheme
+│   │   └── project.pbxproj
+│   ├── Runner.xcworkspace/
+│   │   ├── xcshareddata/
+│   │   │   ├── IDEWorkspaceChecks.plist
+│   │   │   └── WorkspaceSettings.xcsettings
+│   │   └── contents.xcworkspacedata
+│   └── RunnerTests/
+│   │   └── RunnerTests.swift
+├── lib/
+│   ├── api/
+│   │   └── google_books_api.dart
+│   ├── models/
+│   │   ├── analytics.dart
+│   │   ├── book.dart
+│   │   ├── favorite_book.dart
+│   │   ├── search_history.dart
+│   │   ├── stat_item.dart
+│   │   └── user_model.dart
+│   ├── screens/
+│   │   ├── admin_analytics_screen.dart
+│   │   ├── admin_notification_screen.dart
+│   │   ├── admin_traffic_screen.dart
+│   │   ├── admin_user_management_screen.dart
+│   │   ├── book_detail_screen.dart
+│   │   ├── favorite_books_screen.dart
+│   │   ├── history_screen.dart
+│   │   ├── home_screen.dart
+│   │   ├── login_screen.dart
+│   │   ├── search_results_screen.dart
+│   │   └── settings_screen.dart
+│   ├── services/
+│   │   ├── admin_service.dart
+│   │   ├── auth_service.dart
+│   │   └── database_service.dart
+│   ├── utils/
+│   │   ├── constants.dart
+│   │   └── theme_provider.dart
+│   ├── widgets/
+│   │   ├── book_card.dart
+│   │   ├── bottom_navigation.dart
+│   │   ├── loading_indicator.dart
+│   │   └── search_bar.dart
+│   └── main.dart
+├── linux/
+│   ├── flutter/
+│   │   ├── ephemeral/
+│   │   ├── CMakeLists.txt
+│   │   ├── generated_plugin_registrant.cc
+│   │   ├── generated_plugin_registrant.h
+│   │   └── generated_plugins.cmake
+│   ├── runner/
+│   │   ├── CMakeLists.txt
+│   │   ├── main.cc
+│   │   ├── my_application.cc
+│   │   └── my_application.h
+│   └── CMakeLists.txt
+├── macos/
+│   ├── Flutter/
+│   │   ├── ephemeral/
+│   │   │   ├── flutter_export_environment.sh
+│   │   │   └── Flutter-Generated.xcconfig
+│   │   ├── Flutter-Debug.xcconfig
+│   │   ├── Flutter-Release.xcconfig
+│   │   └── GeneratedPluginRegistrant.swift
+│   ├── Runner/
+│   │   ├── Assets.xcassets/
+│   │   │   └── AppIcon.appiconset/
+│   │   │   │   ├── app_icon_1024.png
+│   │   │   │   ├── app_icon_128.png
+│   │   │   │   ├── app_icon_16.png
+│   │   │   │   ├── app_icon_256.png
+│   │   │   │   ├── app_icon_32.png
+│   │   │   │   ├── app_icon_512.png
+│   │   │   │   ├── app_icon_64.png
+│   │   │   │   └── Contents.json
+│   │   ├── Base.lproj/
+│   │   │   └── MainMenu.xib
+│   │   ├── Configs/
+│   │   │   ├── AppInfo.xcconfig
+│   │   │   ├── Debug.xcconfig
+│   │   │   ├── Release.xcconfig
+│   │   │   └── Warnings.xcconfig
+│   │   ├── AppDelegate.swift
+│   │   ├── DebugProfile.entitlements
+│   │   ├── Info.plist
+│   │   ├── MainFlutterWindow.swift
+│   │   └── Release.entitlements
+│   ├── Runner.xcodeproj/
+│   │   ├── project.xcworkspace/
+│   │   │   └── xcshareddata/
+│   │   │   │   └── IDEWorkspaceChecks.plist
+│   │   ├── xcshareddata/
+│   │   │   └── xcschemes/
+│   │   │   │   └── Runner.xcscheme
+│   │   └── project.pbxproj
+│   ├── Runner.xcworkspace/
+│   │   ├── xcshareddata/
+│   │   │   └── IDEWorkspaceChecks.plist
+│   │   └── contents.xcworkspacedata
+│   └── RunnerTests/
+│   │   └── RunnerTests.swift
+├── test/
+│   └── widget_test.dart
+├── web/
+│   ├── icons/
+│   │   ├── Icon-192.png
+│   │   ├── Icon-512.png
+│   │   ├── Icon-maskable-192.png
+│   │   └── Icon-maskable-512.png
+│   ├── favicon.png
+│   ├── index.html
+│   └── manifest.json
+├── windows/
+│   ├── flutter/
+│   │   ├── ephemeral/
+│   │   ├── CMakeLists.txt
+│   │   ├── generated_plugin_registrant.cc
+│   │   ├── generated_plugin_registrant.h
+│   │   └── generated_plugins.cmake
+│   ├── runner/
+│   │   ├── resources/
+│   │   │   └── app_icon.ico
+│   │   ├── CMakeLists.txt
+│   │   ├── flutter_window.cpp
+│   │   ├── flutter_window.h
+│   │   ├── main.cpp
+│   │   ├── resource.h
+│   │   ├── runner.exe.manifest
+│   │   ├── Runner.rc
+│   │   ├── utils.cpp
+│   │   ├── utils.h
+│   │   ├── win32_window.cpp
+│   │   └── win32_window.h
+│   └── CMakeLists.txt
+├── analysis_options.yaml
+├── CHANGELOG.md
+├── devtools_options.yaml
+├── firebase.json
+├── LICENSE
+├── pubspec.lock
+├── pubspec.yaml
+├── README.md
+└── tim_kiem_sach.iml
