@@ -4,15 +4,25 @@
 
 ---
 
+### 🎥 Video Demo
+
+Bạn có thể xem video giới thiệu tại đây:
+
+👉 [Xem Video Demo trên YouTube](https://youtu.be/s3EeOYbCrl0?si=GE2SGLBO_agpzHvt)
+
+---
+
 ## ✨ Tính Năng Nổi Bật
 
 ### 👤 Dành Cho Người Dùng (Users)
+
 * **🔍 Tìm kiếm sách**: Tích hợp **Google Books API** giúp tìm kiếm sách nhanh chóng và chính xác.
 * **❤️ Quản lý sách yêu thích**: Người dùng có thể lưu lại những cuốn sách mình yêu thích để dễ dàng xem lại.
 * **📖 Lịch sử tìm kiếm**: Tự động lưu và hiển thị những từ khóa tìm kiếm gần đây.
 * **🔐 Xác thực an toàn**: Đăng nhập nhanh chóng và bảo mật thông qua cấu hình Firebase Authentication.
 
 ### 🛡️ Dành Cho Quản Trị Viên (Admins)
+
 * **📊 Thống kê & Phân tích**: Sử dụng `fl_chart` để trực quan hóa dữ liệu truy cập, lượng tìm kiếm và sách yêu thích bằng các biểu đồ sinh động.
 * **👥 Quản lý người dùng**: Phân quyền chi tiết (Admin / User), xem danh sách người dùng và truy cập dữ liệu liên quan.
 * **🔔 Quản lý thông báo**: Hệ thống gửi và quản lý thông báo qua **Firebase Cloud Messaging**.
