@@ -3,21 +3,23 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+
+// Screens
 import 'screens/home_screen.dart';
 import 'screens/history_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/login_screen.dart';
-import 'screens/book_detail_screen.dart';
 import 'screens/search_results_screen.dart';
 import 'screens/favorite_books_screen.dart';
 import 'screens/admin_user_management_screen.dart';
 import 'screens/admin_analytics_screen.dart';
 import 'screens/admin_notification_screen.dart';
 import 'screens/admin_traffic_screen.dart';
+
+// Services & Utils
 import 'utils/theme_provider.dart';
 import 'services/auth_service.dart';
 import 'widgets/bottom_navigation.dart';
-import 'screens/admin_traffic_screen.dart';
 
 Future<void> logAppOpenEvent() async {
   try {
@@ -25,15 +27,19 @@ Future<void> logAppOpenEvent() async {
       'event_type': 'app_open',
       'timestamp': FieldValue.serverTimestamp(),
     });
-    print('Logged app open event to Firestore.');
+    print('✅ Đã ghi nhận sự kiện mở app vào Firestore.');
   } catch (e) {
-    print('Error logging app open event: $e');
+    print('❌ Lỗi ghi log app_open: $e');
   }
 }
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+
+  // Gọi ghi log khi mở app
+  logAppOpenEvent();
+
   await FirebaseMessaging.instance.subscribeToTopic('all_users');
   runApp(const MyApp());
 }
@@ -52,19 +58,20 @@ class MyApp extends StatelessWidget {
         builder: (context, themeProvider, child) {
           return MaterialApp(
             title: 'Tìm kiếm Sách',
+            // Sử dụng theme từ provider để Dark Mode áp dụng toàn app
             theme: themeProvider.themeData,
             debugShowCheckedModeBanner: false,
             initialRoute: '/',
             routes: {
               '/': (context) => const AuthWrapper(),
               '/login': (context) => LoginScreen(),
-              '/home': (context) => MainScreen(),
+              '/home': (context) => const MainScreen(),
               '/search-results': (context) => SearchResultsScreen(query: ''),
               '/favorites': (context) => FavoriteBooksScreen(),
               '/admin/users': (context) => AdminUserManagementScreen(),
               '/admin/analytics': (context) => AdminAnalyticsScreen(),
-              '/admin/notifications': (context) => AdminNotificationScreen(),
-              '/admin/traffic': (context) => AdminTrafficScreen(),
+              '/admin/notifications': (context) => const AdminNotificationScreen(),
+              '/admin/traffic': (context) => const AdminTrafficScreen(),
             },
           );
         },
@@ -79,7 +86,8 @@ class AuthWrapper extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
-    return authService.isLoggedIn ? MainScreen() : LoginScreen();
+    // Nếu đã đăng nhập thì vào thẳng MainScreen, ngược lại về Login
+    return authService.isLoggedIn ? const MainScreen() : LoginScreen();
   }
 }
 
@@ -92,10 +100,11 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
-  final List<Widget> _screens = [
+
+  // Danh sách các màn hình chính (Đã bỏ HistoryScreen)
+  final List<Widget> _screens = const [
     HomeScreen(),
-    HistoryScreen(),
-    SettingsScreen(),
+    SettingsScreen(), // Chỉ còn lại Trang chủ (Index 0) và Cài đặt (Index 1)
   ];
 
   void _onItemTapped(int index) {
@@ -107,7 +116,11 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _screens[_selectedIndex],
+      // IndexedStack giúp giữ trạng thái của các tab khi chuyển đổi
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _screens,
+      ),
       bottomNavigationBar: BottomNavigation(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,

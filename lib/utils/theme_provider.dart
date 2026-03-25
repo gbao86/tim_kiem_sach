@@ -17,14 +17,14 @@ class ThemeProvider with ChangeNotifier {
 
   final ThemeData _lightTheme = ThemeData(
     primaryColor: Colors.blue,
-    colorScheme: ColorScheme.light(
+    colorScheme: const ColorScheme.light(
       primary: Colors.blue,
       secondary: Colors.blueAccent,
       background: Colors.white,
       surface: Colors.white,
     ),
     scaffoldBackgroundColor: Colors.white,
-    appBarTheme: AppBarTheme(
+    appBarTheme: const AppBarTheme(
       color: Colors.blue,
       elevation: 0,
       iconTheme: IconThemeData(color: Colors.white),
@@ -34,14 +34,15 @@ class ThemeProvider with ChangeNotifier {
         fontWeight: FontWeight.bold,
       ),
     ),
-    cardTheme: CardTheme(
+    // Đã đổi CardTheme thành CardThemeData
+    cardTheme: CardThemeData(
       elevation: 4,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
     ),
     fontFamily: 'Roboto',
-    textTheme: TextTheme(
+    textTheme: const TextTheme(
       titleLarge: TextStyle(
         fontSize: 24,
         fontWeight: FontWeight.bold,
@@ -74,7 +75,7 @@ class ThemeProvider with ChangeNotifier {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: Colors.blue, width: 2),
+        borderSide: const BorderSide(color: Colors.blue, width: 2),
       ),
       filled: true,
       fillColor: Colors.grey[100],
@@ -86,11 +87,11 @@ class ThemeProvider with ChangeNotifier {
     colorScheme: ColorScheme.dark(
       primary: Colors.blue[700]!,
       secondary: Colors.lightBlue,
-      background: Color(0xFF121212),
-      surface: Color(0xFF1E1E1E),
+      background: const Color(0xFF121212),
+      surface: const Color(0xFF1E1E1E),
     ),
-    scaffoldBackgroundColor: Color(0xFF121212),
-    appBarTheme: AppBarTheme(
+    scaffoldBackgroundColor: const Color(0xFF121212),
+    appBarTheme: const AppBarTheme(
       color: Color(0xFF1E1E1E),
       elevation: 0,
       iconTheme: IconThemeData(color: Colors.white),
@@ -100,15 +101,16 @@ class ThemeProvider with ChangeNotifier {
         fontWeight: FontWeight.bold,
       ),
     ),
-    cardTheme: CardTheme(
-      color: Color(0xFF2C2C2C),
+    // Đã đổi CardTheme thành CardThemeData
+    cardTheme: CardThemeData(
+      color: const Color(0xFF2C2C2C),
       elevation: 4,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
     ),
     fontFamily: 'Roboto',
-    textTheme: TextTheme(
+    textTheme: const TextTheme(
       titleLarge: TextStyle(
         fontSize: 24,
         fontWeight: FontWeight.bold,
@@ -144,7 +146,7 @@ class ThemeProvider with ChangeNotifier {
         borderSide: BorderSide(color: Colors.blue[700]!, width: 2),
       ),
       filled: true,
-      fillColor: Color(0xFF2C2C2C),
+      fillColor: const Color(0xFF2C2C2C),
     ),
   );
 

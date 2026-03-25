@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../api/google_books_api.dart';
+import '../api/truyenfull_scraper.dart'; // Thêm dòng import bộ cào TruyenFull
 import '../models/book.dart';
 import '../services/database_service.dart';
 import '../utils/constants.dart';
@@ -19,7 +20,11 @@ class SearchResultsScreen extends StatefulWidget {
 
 class _SearchResultsScreenState extends State<SearchResultsScreen> {
   late Future<List<Book>> _booksFuture;
-  final GoogleBooksApi _api = GoogleBooksApi();
+
+  // Khởi tạo cả 2 nguồn tìm kiếm
+  final GoogleBooksApi _googleApi = GoogleBooksApi();
+  final TruyenFullScraper _truyenFullScraper = TruyenFullScraper();
+
   final DatabaseService _databaseService = DatabaseService();
   bool _isSearching = false;
 
@@ -32,7 +37,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
   Future<void> _searchBooks() async {
     setState(() {
       _isSearching = true;
-      _booksFuture = _api.searchBooks(widget.query);
+      _booksFuture = _fetchAllSources(); // Gọi hàm gom dữ liệu mới
     });
 
     try {
@@ -47,6 +52,32 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
         });
       }
     }
+  }
+
+  // --- HÀM MỚI: TÌM KIẾM SONG SONG 2 NGUỒN ---
+  Future<List<Book>> _fetchAllSources() async {
+    // Dùng Future.wait để tìm kiếm cùng lúc, giúp app không bị chậm
+    final List<List<Book>> results = await Future.wait([
+      // Nguồn 1: Google Books (Bắt lỗi để app không sập nếu API có vấn đề)
+      _googleApi.searchBooks(widget.query).catchError((e) {
+        print('Lỗi Google Books: $e');
+        return <Book>[];
+      }),
+
+      // Nguồn 2: TruyenFull
+      _truyenFullScraper.searchBooks(widget.query).catchError((e) {
+        print('Lỗi TruyenFull: $e');
+        return <Book>[];
+      }),
+    ]);
+
+    // Gom tất cả kết quả vào một danh sách duy nhất
+    List<Book> combinedBooks = [];
+    for (var list in results) {
+      combinedBooks.addAll(list);
+    }
+
+    return combinedBooks;
   }
 
   @override

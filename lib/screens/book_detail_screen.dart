@@ -6,7 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:uuid/uuid.dart';
-
+import 'book_reader_screen.dart';
 import '../models/book.dart';
 import '../widgets/loading_indicator.dart';
 import '../services/auth_service.dart';
@@ -144,29 +144,25 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     if (widget.book.previewLink.isEmpty) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Không có liên kết xem trước cho cuốn sách này.')),
+        const SnackBar(content: Text('Không có bản đọc thử cho cuốn sách này.')),
       );
       return;
     }
 
-    print('Preview Link: ${widget.book.previewLink}');
-    try {
-      final Uri url = Uri.parse(widget.book.previewLink.startsWith('http') ? widget.book.previewLink : 'https://${widget.book.previewLink}');
-      if (await canLaunchUrl(url)) {
-        await launchUrl(url, mode: LaunchMode.externalApplication);
-      } else {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Không thể mở liên kết xem trước. Liên kết không hợp lệ.')),
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-      print('Launch Error: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi khi mở liên kết: $e')),
-      );
+    String secureUrl = widget.book.previewLink;
+    if (secureUrl.startsWith('http://')) {
+      secureUrl = secureUrl.replaceFirst('http://', 'https://');
     }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BookReaderScreen(
+          title: widget.book.title,
+          url: secureUrl,
+        ),
+      ),
+    );
   }
 
   @override
@@ -367,7 +363,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                 child: ElevatedButton.icon(
                   onPressed: _launchPreviewLink,
                   icon: const Icon(Icons.remove_red_eye),
-                  label: const Text('Xem trước'),
+                  label: const Text('Đọc sách'),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),

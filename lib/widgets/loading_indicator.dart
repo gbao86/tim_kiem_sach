@@ -7,20 +7,16 @@ class LoadingIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Lấy màu primary từ theme hiện tại của hệ thống
+    final primaryColor = Theme
+        .of(context)
+        .primaryColor;
+
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const CircularProgressIndicator(),
-          if (message != null) ...[
-            const SizedBox(height: 16),
-            Text(
-              message!,
-              style: const TextStyle(fontSize: 16),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ],
+      child: CircularProgressIndicator(
+        // Tự động đổi màu theo Theme
+        valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
+        strokeWidth: 3,
       ),
     );
   }

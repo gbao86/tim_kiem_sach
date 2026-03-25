@@ -21,10 +21,6 @@ class BottomNavigation extends StatelessWidget {
           label: 'Trang chủ',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.history),
-          label: 'Lịch sử',
-        ),
-        BottomNavigationBarItem(
           icon: Icon(Icons.settings),
           label: 'Cài đặt',
         ),

@@ -3,9 +3,12 @@ import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
+import 'dart:math';
 import '../models/analytics.dart';
 import '../services/auth_service.dart';
 import '../widgets/loading_indicator.dart';
+
+enum TimeFilter { day, month, year }
 
 class AdminTrafficScreen extends StatefulWidget {
   const AdminTrafficScreen({Key? key}) : super(key: key);
@@ -17,15 +20,30 @@ class AdminTrafficScreen extends StatefulWidget {
 class _AdminTrafficScreenState extends State<AdminTrafficScreen> {
   bool _isLoading = true;
   bool _isAdmin = false;
+
+  Map<String, String> _userMap = {};
+  List<DateTime> _rawTimestamps = [];
+  List<Map<String, dynamic>> _allSearchDetails = [];
   List<AnalyticsData> _analytics = [];
   List<Map<String, dynamic>> _favoriteBooks = [];
+
+  TimeFilter _selectedFilter = TimeFilter.day;
 
   @override
   void initState() {
     super.initState();
-    _checkAdminStatus();
-    _fetchAnalytics();
-    _fetchFavoriteBooks();
+    _initializeData();
+  }
+
+  Future<void> _initializeData() async {
+    await _checkAdminStatus();
+    if (_isAdmin) {
+      await _fetchUserMap();
+      await Future.wait([
+        _fetchRawAnalyticsData(),
+        _fetchFavoriteBooks(),
+      ]);
+    }
   }
 
   Future<void> _checkAdminStatus() async {
@@ -38,562 +56,308 @@ class _AdminTrafficScreenState extends State<AdminTrafficScreen> {
     }
   }
 
-  Future<void> _fetchAnalytics() async {
-    setState(() {
-      _isLoading = true;
-    });
-
+  Future<void> _fetchUserMap() async {
     try {
-      final querySnapshot = await FirebaseFirestore.instance
-          .collectionGroup('search_history')
-          .orderBy('timestamp', descending: true)
-          .orderBy('query', descending: true)
-          .orderBy('resultCount', descending: true)
-          .get();
-
-      final dailyCount = <DateTime, int>{};
-      for (var doc in querySnapshot.docs) {
+      final snapshot = await FirebaseFirestore.instance.collection('users').get();
+      for (var doc in snapshot.docs) {
         final data = doc.data();
-        DateTime? timestamp;
-
-        if (data['timestamp'] is Timestamp) {
-          timestamp = (data['timestamp'] as Timestamp).toDate();
-        } else if (data['timestamp'] is String) {
-          final timestampString = data['timestamp'] as String;
-          try {
-            timestamp = DateTime.parse(timestampString);
-          } catch (e) {
-            print('Lỗi parse timestamp string trong _fetchAnalytics: $timestampString, Lỗi: $e');
-            continue;
-          }
-        }
-
-        if (timestamp != null) {
-          final date = DateTime(timestamp.year, timestamp.month, timestamp.day);
-          dailyCount[date] = (dailyCount[date] ?? 0) + 1;
-        }
-      }
-
-      final analyticsList = dailyCount.entries.map((entry) {
-        return AnalyticsData(
-          id: '',
-          bookId: '',
-          bookTitle: '',
-          searchCount: entry.value,
-          timestamp: entry.key,
-        );
-      }).toList();
-
-      analyticsList.sort((a, b) => a.timestamp.compareTo(b.timestamp));
-
-      if (mounted) {
-        setState(() {
-          _analytics = analyticsList;
-          _isLoading = false;
-        });
+        final name = data['displayName'] as String?;
+        final email = data['email'] as String?;
+        _userMap[doc.id] = (name != null && name.trim().isNotEmpty) ? name : (email ?? 'Khách');
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi tải dữ liệu phân tích: $e')),
-        );
-        setState(() {
-          _isLoading = false;
-        });
+      print('Lỗi tải danh sách user: $e');
+    }
+  }
+
+  Future<void> _fetchRawAnalyticsData() async {
+    setState(() => _isLoading = true);
+    try {
+      final results = await Future.wait([
+        FirebaseFirestore.instance.collectionGroup('search_history').get(),
+        FirebaseFirestore.instance.collection('analytics').get(),
+      ]);
+
+      final List<DateTime> timestamps = [];
+      final List<Map<String, dynamic>> details = [];
+
+      for (var querySnapshot in results) {
+        for (var doc in querySnapshot.docs) {
+          final data = doc.data();
+          if (data['timestamp'] != null) {
+            DateTime? dt;
+            if (data['timestamp'] is Timestamp) {
+              dt = (data['timestamp'] as Timestamp).toDate();
+            } else if (data['timestamp'] is String) {
+              try {
+                dt = DateTime.parse(data['timestamp'] as String);
+              } catch (_) {}
+            }
+
+            if (dt != null) {
+              timestamps.add(dt);
+              String? queryText = data['query'] as String? ?? data['bookTitle'] as String?;
+              String userId = data['userId'] as String? ??
+                  (doc.reference.parent.parent != null ? doc.reference.parent.parent!.id : '');
+              String displayUser = userId.isNotEmpty ? (_userMap[userId] ?? userId) : 'Khách';
+
+              if (queryText != null && queryText.trim().isNotEmpty) {
+                details.add({
+                  'query': queryText,
+                  'timestamp': dt,
+                  'userName': displayUser,
+                });
+              }
+            }
+          }
+        }
       }
+
+      _rawTimestamps = timestamps;
+      _allSearchDetails = details;
+      _aggregateData();
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  void _aggregateData() {
+    final Map<DateTime, int> groupedCount = {};
+    for (var timestamp in _rawTimestamps) {
+      DateTime groupKey;
+      switch (_selectedFilter) {
+        case TimeFilter.year: groupKey = DateTime(timestamp.year); break;
+        case TimeFilter.month: groupKey = DateTime(timestamp.year, timestamp.month); break;
+        default: groupKey = DateTime(timestamp.year, timestamp.month, timestamp.day); break;
+      }
+      groupedCount[groupKey] = (groupedCount[groupKey] ?? 0) + 1;
+    }
+
+    final list = groupedCount.entries.map((e) => AnalyticsData(id: '', bookId: '', bookTitle: '', searchCount: e.value, timestamp: e.key)).toList();
+    list.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+    if (mounted) setState(() { _analytics = list; _isLoading = false; });
+  }
+
+  void _onFilterChanged(TimeFilter filter) {
+    if (_selectedFilter != filter) {
+      setState(() {
+        _selectedFilter = filter;
+        _isLoading = true;
+      });
+      Future.delayed(const Duration(milliseconds: 300), () => _aggregateData());
     }
   }
 
   Future<void> _fetchFavoriteBooks() async {
     try {
-      final querySnapshot = await FirebaseFirestore.instance
-          .collectionGroup('favorites')
-          .orderBy('userId', descending: true)
-          .orderBy('title', descending: true)
-          .orderBy('author', descending: true)
-          .orderBy('coverUrl', descending: true)
-          .get();
-
+      final querySnapshot = await FirebaseFirestore.instance.collectionGroup('favorites').orderBy('title').get();
       final List<Map<String, dynamic>> fetchedBooks = [];
       for (var doc in querySnapshot.docs) {
-        fetchedBooks.add(doc.data() as Map<String, dynamic>);
+        final data = doc.data();
+        String userId = data['userId'] as String? ?? '';
+        data['userName'] = userId.isNotEmpty ? (_userMap[userId] ?? userId) : 'Khách';
+        fetchedBooks.add(data);
       }
-
-      if (mounted) {
-        setState(() {
-          _favoriteBooks = fetchedBooks;
-        });
-      }
-    } catch (e) {
-      print('Lỗi tải danh sách sách yêu thích: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi tải danh sách sách yêu thích: $e')),
-        );
-      }
-    }
+      if (mounted) setState(() => _favoriteBooks = fetchedBooks);
+    } catch (e) {}
   }
 
   String _formatChartDate(DateTime dateTime) {
-    return DateFormat('dd/MM').format(dateTime);
+    switch (_selectedFilter) {
+      case TimeFilter.year: return DateFormat('yyyy').format(dateTime);
+      case TimeFilter.month: return DateFormat('MM/yy').format(dateTime);
+      default: return DateFormat('dd/MM').format(dateTime);
+    }
   }
 
   String _formatListDate(DateTime dateTime) {
-    return DateFormat('dd/MM/yyyy').format(dateTime);
+    switch (_selectedFilter) {
+      case TimeFilter.year: return 'Năm ${DateFormat('yyyy').format(dateTime)}';
+      case TimeFilter.month: return 'Tháng ${DateFormat('MM/yyyy').format(dateTime)}';
+      default: return DateFormat('dd/MM/yyyy').format(dateTime);
+    }
   }
 
-  Future<List<Map<String, dynamic>>> _fetchSpecificQueriesForDay(DateTime date) async {
-    final startOfDay = DateTime(date.year, date.month, date.day, 0, 0, 0);
-    final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59, 999);
-
-    try {
-      Query query = FirebaseFirestore.instance.collectionGroup('search_history');
-
-      query = query
-          .where('timestamp', isGreaterThanOrEqualTo: startOfDay.toIso8601String())
-          .where('timestamp', isLessThanOrEqualTo: endOfDay.toIso8601String());
-
-      query = query
-          .orderBy('timestamp', descending: true)
-          .orderBy('query', descending: true)
-          .orderBy('resultCount', descending: true);
-
-      final querySnapshot = await query.get();
-
-      List<Map<String, dynamic>> queriesWithTimestamp = [];
-      for (var doc in querySnapshot.docs) {
-        final data = doc.data() as Map<String, dynamic>;
-        String? actualQuery = data['query'] as String?;
-        if (actualQuery == null || actualQuery.isEmpty) {
-          actualQuery = data['bookTitle'] as String?;
-        }
-
-        if (actualQuery != null && actualQuery.isNotEmpty) {
-          DateTime? queryTime;
-          if (data['timestamp'] is String) {
-            try {
-              queryTime = DateTime.parse(data['timestamp'] as String);
-            } catch (e) {
-              print('Lỗi parse timestamp string trong chi tiết query: ${data['timestamp']}, Lỗi: $e');
-            }
-          } else if (data['timestamp'] is Timestamp) {
-            queryTime = (data['timestamp'] as Timestamp).toDate();
-          }
-          queriesWithTimestamp.add({
-            'query': actualQuery,
-            'timestamp': queryTime,
-          });
-        }
-      }
-      return queriesWithTimestamp;
-    } catch (e) {
-      print('Error fetching specific queries for day ${date.toIso8601String()}: $e');
-      if (e.toString().contains('requires an index')) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Lỗi chỉ mục Firestore cho truy vấn chi tiết. Vui lòng kiểm tra Firebase Console để tạo chỉ mục mới được đề xuất.'),
-            duration: const Duration(seconds: 5),
-          ),
-        );
-      }
-      return [];
-    }
+  Future<List<Map<String, dynamic>>> _fetchQueries(DateTime date) async {
+    return _allSearchDetails.where((e) {
+      final t = e['timestamp'] as DateTime;
+      return t.year == date.year && t.month == date.month && t.day == date.day;
+    }).toList();
   }
 
   void _showDetailsDialog(DateTime selectedDate) {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Chi tiết tìm kiếm ngày ${_formatListDate(selectedDate)}'),
-          content: SizedBox(
-            width: double.maxFinite,
-            height: MediaQuery.of(context).size.height * 0.6,
-            child: FutureBuilder<List<Map<String, dynamic>>>(
-              future: _fetchSpecificQueriesForDay(selectedDate),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: LoadingIndicator());
-                }
-                if (snapshot.hasError) {
-                  print('Lỗi trong FutureBuilder chi tiết query: ${snapshot.error}');
-                  return Center(child: Text('Lỗi tải chi tiết: ${snapshot.error}'));
-                }
-                if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(child: Text('Không có query nào trong ngày này.'));
-                }
-
-                final queries = snapshot.data!;
-                return ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: queries.length,
-                  itemBuilder: (context, index) {
-                    final queryData = queries[index];
-                    final queryText = queryData['query'] as String;
-                    final queryTime = queryData['timestamp'] as DateTime?;
-
-                    String timeString = queryTime != null ? DateFormat('HH:mm').format(queryTime) : '';
-
-                    return Card(
-                      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 0),
-                      elevation: 1,
-                      child: ListTile(
-                        leading: const Icon(Icons.search, size: 20),
-                        title: Text(
-                          queryText,
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                        trailing: timeString.isNotEmpty
-                            ? Text(
-                          timeString,
-                          style: const TextStyle(fontSize: 12, color: Colors.grey),
-                        )
-                            : null,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Theme.of(context).cardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Chi tiết ${_formatListDate(selectedDate)}'),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 400,
+          child: FutureBuilder<List<Map<String, dynamic>>>(
+            future: _fetchQueries(selectedDate),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: LoadingIndicator());
+              if (!snapshot.hasData || snapshot.data!.isEmpty) return const Center(child: Text('Không có dữ liệu.'));
+              return ListView.separated(
+                itemCount: snapshot.data!.length,
+                separatorBuilder: (_, __) => const Divider(),
+                itemBuilder: (context, index) {
+                  final data = snapshot.data![index];
+                  return ListTile(
+                    leading: const Icon(Icons.person_search, color: Colors.blueAccent),
+                    title: Text(data['query'], style: const TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text('User: ${data['userName']}'),
+                    trailing: Text(DateFormat('HH:mm').format(data['timestamp'])),
+                  );
+                },
+              );
+            },
           ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Đóng'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showFavoriteBookDetailsDialog(Map<String, dynamic> bookData) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(bookData['title'] ?? 'Chi tiết sách yêu thích'),
-          content: SingleChildScrollView(
-            child: ListBody(
-              children: <Widget>[
-                if (bookData['coverUrl'] != null && bookData['coverUrl'].isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0),
-                    child: Center(
-                      child: Image.network(
-                        bookData['coverUrl'],
-                        height: 150,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image, size: 100, color: Colors.grey),
-                      ),
-                    ),
-                  ),
-                Divider(),
-                _buildDetailRow('Tiêu đề sách:', bookData['title'] ?? 'N/A'),
-                _buildDetailRow('Tác giả:', bookData['author'] ?? 'N/A'),
-                _buildDetailRow('Book ID:', bookData['bookId'] ?? 'N/A'),
-                _buildDetailRow('Favorite ID:', bookData['id'] ?? 'N/A'),
-                _buildDetailRow('User ID:', bookData['userId'] ?? 'N/A'),
-                // Bạn có thể thêm các trường khác nếu có trong dữ liệu 'favorites' của bạn
-                // Ví dụ: _buildDetailRow('Ngày thêm:', DateFormat('dd/MM/yyyy').format(bookData['addedDate'].toDate()) ?? 'N/A'),
-              ],
-            ),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Đóng'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 100,
-            child: Text(
-              label,
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-          Expanded(
-            child: Text(value),
-          ),
-        ],
+        ),
+        actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Đóng'))],
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    if (!_isAdmin && !_isLoading) return Scaffold(body: Center(child: Text('Admin Only', style: theme.textTheme.titleMedium)));
+
+    double maxY = 5;
+    if (_analytics.isNotEmpty) maxY = _analytics.map((e) => e.searchCount).reduce(max).toDouble() * 1.3;
+
     return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Lưu lượng truy cập'),
+        title: const Text('Thống kê hệ thống', style: TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
-        backgroundColor: Colors.blueAccent,
         elevation: 0,
+        backgroundColor: Colors.transparent,
       ),
-      body: _isAdmin
-          ? _isLoading
-          ? const Center(child: LoadingIndicator())
-          : SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+      body: _isLoading ? const Center(child: LoadingIndicator()) : SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Biểu đồ hoạt động tìm kiếm',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blueGrey),
-            ),
-            const SizedBox(height: 16),
-            Card(
-              elevation: 4,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: SizedBox(
-                  height: 280,
-                  child: _analytics.isEmpty
-                      ? const Center(child: Text('Không có dữ liệu tìm kiếm'))
-                      : LineChart(
-                    LineChartData(
-                      gridData: FlGridData(
-                        show: true,
-                        drawVerticalLine: true,
-                        horizontalInterval: 1,
-                        verticalInterval: 1,
-                        getDrawingHorizontalLine: (value) {
-                          return const FlLine(
-                            color: Color(0xff37434d),
-                            strokeWidth: 0.5,
-                          );
-                        },
-                        getDrawingVerticalLine: (value) {
-                          return const FlLine(
-                            color: Color(0xff37434d),
-                            strokeWidth: 0.5,
-                          );
-                        },
-                      ),
-                      titlesData: FlTitlesData(
-                        show: true,
-                        bottomTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            reservedSize: 40,
-                            interval: 1,
-                            getTitlesWidget: (value, meta) {
-                              final index = value.toInt();
-                              if (index < 0 || index >= _analytics.length) return const Text('');
-                              final date = _analytics[index].timestamp;
-                              if (_analytics.length > 7 && index % (_analytics.length ~/ 7).clamp(1, 5) != 0) {
-                                return const Text('');
-                              }
-                              return Padding(
-                                padding: const EdgeInsets.only(top: 8.0),
-                                child: Text(
-                                  _formatChartDate(date),
-                                  style: const TextStyle(
-                                    color: Colors.grey,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 10,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                        leftTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            reservedSize: 40,
-                            interval: (_analytics.isNotEmpty && _analytics.map((e) => e.searchCount).reduce((a, b) => a > b ? a : b) > 10)
-                                ? ((_analytics.map((e) => e.searchCount).reduce((a, b) => a > b ? a : b) / 5).ceilToDouble())
-                                : 1,
-                            getTitlesWidget: (value, meta) {
-                              return Text(
-                                '${value.toInt()}',
-                                style: const TextStyle(
-                                  color: Colors.grey,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 10,
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      ),
-                      borderData: FlBorderData(
-                        show: true,
-                        border: Border.all(color: const Color(0xff37434d), width: 1),
-                      ),
-                      minX: 0,
-                      maxX: (_analytics.length > 0 ? _analytics.length - 1 : 0).toDouble(),
-                      minY: 0,
-                      maxY: (_analytics.isNotEmpty
-                          ? (_analytics.map((e) => e.searchCount).reduce((a, b) => a > b ? a : b).toDouble() * 1.2)
-                          : 5),
-                      lineBarsData: [
-                        LineChartBarData(
-                          spots: _analytics.asMap().entries.map((entry) {
-                            return FlSpot(entry.key.toDouble(), entry.value.searchCount.toDouble());
-                          }).toList(),
-                          isCurved: true,
-                          color: Colors.lightBlueAccent,
-                          gradient: const LinearGradient(
-                            colors: [
-                              Colors.cyanAccent,
-                              Colors.blueAccent,
-                            ],
-                            begin: Alignment.bottomCenter,
-                            end: Alignment.topCenter,
-                          ),
-                          barWidth: 3,
-                          dotData: FlDotData(
-                            show: true,
-                            getDotPainter: (spot, percent, bar, index) {
-                              return FlDotCirclePainter(
-                                radius: 3,
-                                color: Colors.blue,
-                                strokeWidth: 1,
-                                strokeColor: Colors.white,
-                              );
-                            },
-                          ),
-                          belowBarData: BarAreaData(
-                            show: true,
-                            gradient: LinearGradient(
-                              colors: [
-                                Colors.blueAccent.withOpacity(0.3),
-                                Colors.cyanAccent.withOpacity(0),
-                              ],
-                              begin: Alignment.bottomCenter,
-                              end: Alignment.topCenter,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+            // Filter Toggle
+            Center(
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(color: isDark ? Colors.white10 : Colors.grey.shade200, borderRadius: BorderRadius.circular(20)),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildFilterBtn('Ngày', TimeFilter.day),
+                    _buildFilterBtn('Tháng', TimeFilter.month),
+                    _buildFilterBtn('Năm', TimeFilter.year),
+                  ],
                 ),
               ),
             ),
             const SizedBox(height: 24),
-            const Text(
-              'Dữ liệu chi tiết gần đây',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blueGrey),
-            ),
+
+            // Chart
+            Row(children: [const Icon(Icons.insights, color: Colors.blueAccent), const SizedBox(width: 8), Text('Biểu đồ lượng tìm kiếm', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold))]),
             const SizedBox(height: 16),
+            Container(
+              decoration: BoxDecoration(color: theme.cardColor, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.3 : 0.05), blurRadius: 10)]),
+              child: _analytics.isEmpty ? const SizedBox(height: 250, child: Center(child: Text('Trống'))) : SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 32, right: 24, left: 12, bottom: 12),
+                  child: SizedBox(
+                    width: max(MediaQuery.of(context).size.width - 64, _analytics.length * 64.0),
+                    height: 250,
+                    child: LineChart(LineChartData(
+                      gridData: FlGridData(show: true, drawVerticalLine: false, horizontalInterval: maxY / 4, getDrawingHorizontalLine: (_) => FlLine(color: isDark ? Colors.white10 : Colors.black12, strokeWidth: 1)),
+                      titlesData: FlTitlesData(
+                        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 30, getTitlesWidget: (v, _) => Text(v.toInt().toString(), style: TextStyle(color: theme.hintColor, fontSize: 10)))),
+                        bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, interval: 1, getTitlesWidget: (v, _) {
+                          if (v < 0 || v >= _analytics.length) return const SizedBox();
+                          return Padding(padding: const EdgeInsets.only(top: 8), child: Text(_formatChartDate(_analytics[v.toInt()].timestamp), style: TextStyle(fontSize: 10, color: theme.hintColor)));
+                        })),
+                      ),
+                      borderData: FlBorderData(show: false),
+                      lineBarsData: [LineChartBarData(
+                        spots: _analytics.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value.searchCount.toDouble())).toList(),
+                        isCurved: true,
+                        color: Colors.blueAccent,
+                        barWidth: 4,
+                        belowBarData: BarAreaData(show: true, gradient: LinearGradient(colors: [Colors.blueAccent.withOpacity(0.3), Colors.blueAccent.withOpacity(0)], begin: Alignment.topCenter, end: Alignment.bottomCenter)),
+                        dotData: FlDotData(show: true),
+                      )],
+                    )),
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 32),
+            Text('Chi tiết lưu lượng', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
             ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: _analytics.length,
               itemBuilder: (context, index) {
                 final analytic = _analytics[_analytics.length - 1 - index];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
-                  child: Card(
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    child: ListTile(
-                      leading: const Icon(Icons.calendar_today, color: Colors.blueGrey),
-                      title: Text(
-                        'Ngày: ${_formatListDate(analytic.timestamp)}',
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      trailing: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: Colors.blueAccent.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(5),
-                        ),
-                        child: Text(
-                          '${analytic.searchCount} lượt',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blueAccent,
-                          ),
-                        ),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      onTap: () {
-                        _showDetailsDialog(analytic.timestamp);
-                      },
-                    ),
+                return Card(
+                  color: theme.cardColor,
+                  margin: const EdgeInsets.only(bottom: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  child: ListTile(
+                    leading: const Icon(Icons.calendar_today, color: Colors.blueAccent),
+                    title: Text(_formatListDate(analytic.timestamp), style: const TextStyle(fontWeight: FontWeight.bold)),
+                    trailing: Chip(label: Text('${analytic.searchCount} lượt'), backgroundColor: Colors.blueAccent.withOpacity(0.1)),
+                    onTap: () => _showDetailsDialog(analytic.timestamp),
                   ),
                 );
               },
             ),
 
             const SizedBox(height: 32),
-            const Text(
-              'Danh sách Sách yêu thích của tất cả User',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blueGrey),
-            ),
-            const SizedBox(height: 16),
-            _favoriteBooks.isEmpty
-                ? const Center(child: Text('Không có sách yêu thích nào.'))
-                : ListView.builder(
+            Text('Sách được yêu thích', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            _favoriteBooks.isEmpty ? const Center(child: Text('Trống')) : ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: _favoriteBooks.length,
               itemBuilder: (context, index) {
-                final book = _favoriteBooks[index];
+                final b = _favoriteBooks[index];
                 return Card(
-                  margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 0),
-                  elevation: 1,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  color: theme.cardColor,
+                  margin: const EdgeInsets.only(bottom: 12),
                   child: ListTile(
-                    leading: const Icon(Icons.book, size: 20, color: Colors.deepOrange),
-                    title: Text(
-                      book['title'] ?? 'Không có tiêu đề',
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                    ),
-                    subtitle: Text(
-                      'Tác giả: ${book['author'] ?? 'Không rõ'} - User ID: ${book['userId'] ?? 'N/A'}',
-                      style: const TextStyle(fontSize: 14, color: Colors.grey),
-                    ),
-                    trailing: book['coverUrl'] != null && book['coverUrl'].isNotEmpty
-                        ? SizedBox(
-                      width: 40,
-                      height: 60,
-                      child: Image.network(
-                        book['coverUrl'],
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image, size: 30, color: Colors.grey),
-                      ),
-                    )
-                        : null,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    onTap: () {
-                      _showFavoriteBookDetailsDialog(book); // Gọi hàm hiển thị chi tiết
-                    },
+                    leading: b['coverUrl'] != null ? Image.network(b['coverUrl'], width: 40, fit: BoxFit.cover) : const Icon(Icons.book),
+                    title: Text(b['title'] ?? 'N/A', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text('Tác giả: ${b['author']} - User: ${b['userName']}'),
                   ),
                 );
               },
             ),
           ],
         ),
-      )
-          : const Center(
-        child: Text(
-          'Bạn không có quyền truy cập màn hình này',
-          style: TextStyle(fontSize: 16, color: Colors.redAccent),
-        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterBtn(String label, TimeFilter filter) {
+    bool sel = _selectedFilter == filter;
+    return GestureDetector(
+      onTap: () => _onFilterChanged(filter),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        decoration: BoxDecoration(color: sel ? Colors.blueAccent : Colors.transparent, borderRadius: BorderRadius.circular(16)),
+        child: Text(label, style: TextStyle(color: sel ? Colors.white : Colors.grey, fontWeight: sel ? FontWeight.bold : FontWeight.normal)),
       ),
     );
   }
