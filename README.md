@@ -1,69 +1,67 @@
-# 📚 Tìm Kiếm Sách (Book Search App)
+# 📚 Tìm Kiếm Sách (Book Search App) - Ultimate Edition
 
-**Tìm Kiếm Sách** là một ứng dụng di động đa nền tảng được phát triển trên nền tảng **Flutter**, kết hợp với hệ sinh thái **Firebase** để cung cấp một trải nghiệm toàn diện và liên tục cho người dùng. Ứng dụng không chỉ hỗ trợ người dùng tìm kiếm, lưu trữ sách yêu thích mà còn cung cấp một hệ thống quản trị chuyên sâu dành cho Admin để phân tích và quản lý dữ liệu.
+[![Flutter](https://img.shields.io/badge/Flutter-3.29.2-blue.svg)](https://flutter.dev/)
+[![Firebase](https://img.shields.io/badge/Firebase-Powered-orange.svg)](https://firebase.google.com/)
+[![License](https://img.shields.io/badge/License-Private-red.svg)](#)
+
+**Tìm Kiếm Sách** là một ứng dụng di động đa nền tảng mạnh mẽ, kết hợp giữa hệ sinh thái **Flutter** và **Firebase**. Ứng dụng mang đến trải nghiệm đọc sách "tất cả trong một" nhờ khả năng tổng hợp dữ liệu từ nhiều nguồn lớn (Global & Local) cùng trình đọc sách tối ưu hóa trải nghiệm người dùng.
 
 ---
 
-### 🎥 Video Demo
+## 🎥 Video Demo & Preview
 
-Bạn có thể xem video giới thiệu tại đây:
+Trải nghiệm thực tế các tính năng tìm kiếm đa nguồn và trình đọc sách thông minh:
 
-👉 [Xem Video Demo trên YouTube](https://youtu.be/s3EeOYbCrl0?si=GE2SGLBO_agpzHvt)
+👉 **[Xem Video Demo v1.0.1 trên YouTube](https://youtu.be/s3EeOYbCrl0?si=GE2SGLBO_agpzHvt)**
 
 ---
 
 ## ✨ Tính Năng Nổi Bật
 
 ### 👤 Dành Cho Người Dùng (Users)
-
-* **🔍 Tìm kiếm sách**: Tích hợp **Google Books API** giúp tìm kiếm sách nhanh chóng và chính xác.
-* **❤️ Quản lý sách yêu thích**: Người dùng có thể lưu lại những cuốn sách mình yêu thích để dễ dàng xem lại.
-* **📖 Lịch sử tìm kiếm**: Tự động lưu và hiển thị những từ khóa tìm kiếm gần đây.
-* **🔐 Xác thực an toàn**: Đăng nhập nhanh chóng và bảo mật thông qua cấu hình Firebase Authentication.
+*   **🔍 Tìm kiếm Đa nguồn (Hybrid Search)**: 
+    *   Tích hợp **Google Books API** cho kho sách quốc tế và chính thống.
+    *   Sử dụng **TruyenFull Scraper** (Deep Scraping) để truy cập hàng chục thể loại truyện chữ Việt Nam (Tiên hiệp, Ngôn tình, Kiếm hiệp...).
+*   **📖 Trình đọc sách In-app Pro**:
+    *   **Smart Ad-Blocker**: Tự động chặn popup, banner và quảng cáo rác từ các nguồn web.
+    *   **Auto Dark Mode**: Tự động đảo màu (Smart Invert) trang web theo giao diện hệ thống.
+    *   **Hỗ trợ Thu phóng**: Kích hoạt Pinch-to-zoom (2 ngón tay) cho mọi trang web.
+    *   **Điều hướng nhanh**: Hệ thống nút chuyển trang trong suốt và nút "Lên đầu trang" (Scroll-to-top).
+*   **❤️ Quản lý cá nhân**: Lưu sách yêu thích (Firestore), quản lý lịch sử tìm kiếm và đồng bộ tài khoản qua **Firebase Auth**.
 
 ### 🛡️ Dành Cho Quản Trị Viên (Admins)
-
-* **📊 Thống kê & Phân tích**: Sử dụng `fl_chart` để trực quan hóa dữ liệu truy cập, lượng tìm kiếm và sách yêu thích bằng các biểu đồ sinh động.
-* **👥 Quản lý người dùng**: Phân quyền chi tiết (Admin / User), xem danh sách người dùng và truy cập dữ liệu liên quan.
-* **🔔 Quản lý thông báo**: Hệ thống gửi và quản lý thông báo qua **Firebase Cloud Messaging**.
-* **📈 Xem nhật ký truy cập**: Theo dõi lưu lượng truy cập và hành vi tìm kiếm của người dùng trong ứng dụng.
+*   **📊 Dashboard Thống kê**: Trực quan hóa dữ liệu truy cập và xu hướng tìm kiếm bằng biểu đồ **fl_chart**.
+*   **👥 Quản lý Người dùng**: Phân quyền chi tiết (Admin/User) và theo dõi nhật ký hoạt động.
+*   **🔔 Push Notifications**: Gửi thông báo đẩy qua **Firebase Cloud Messaging (FCM)**.
 
 ---
 
 ## 🛠️ Công Nghệ Sử Dụng
 
-* **Bộ khung (Framework)**: [Flutter](https://flutter.dev/) (phiên bản SDK >=3.0.0)
-* **Quản lý trạng thái (State Management)**: `provider`
-* **Dịch vụ Backend (BaaS)**: [Firebase](https://firebase.google.com/)
-  * `firebase_core`, `firebase_auth`, `google_sign_in`
-  * `cloud_firestore` (Lưu trữ dữ liệu)
-  * `cloud_functions` (Các hàm logic backend)
-  * `firebase_messaging` (Push notifications)
-* **Giao diện & Tiện ích**:
-  * `cached_network_image`: Tối ưu hóa tải ảnh.
-  * `fl_chart`: Vẽ biểu đồ thống kê cao cấp.
-  * `share_plus`, `url_launcher`: Chia sẻ liên kết và chuyển trang.
-  * `intl`: Định dạng tiền tệ, ngày tháng.
-* **Dịch vụ mạng**: `http` (Gọi API thư viện sách).
+| Thành phần | Công nghệ / Thư viện |
+| :--- | :--- |
+| **Framework** | [Flutter](https://flutter.dev/) (SDK >=3.0.0) |
+| **State Management** | `provider` |
+| **Backend** | Firebase (Auth, Firestore, Messaging, Functions) |
+| **Networking** | `http`, `html` (Web Scraping) |
+| **Giao diện** | `webview_flutter`, `fl_chart`, `cached_network_image` |
+| **Tiện ích** | `share_plus`, `intl`, `theme_provider` |
 
 ---
 
 ## 📂 Cấu Trúc Thư Mục Chính
 
-Ứng dụng được tổ chức theo cấu trúc rõ ràng, dễ dàng mở rộng và bảo trì:
-
 ```text
 lib/
-├── api/          # Xử lý các yêu cầu HTTP (Google Books API)
-├── models/       # Định nghĩa các Data Models (Book, User, Analytics,...)
-├── screens/      # Giao diện người dùng (Home, Login, Search, Admin,...)
-├── services/     # Tương tác với Database, Auth và Services bên thứ 3
-├── utils/        # Hằng số, hàm hỗ trợ, cấu hình giao diện (theme)
+├── api/          # Xử lý HTTP Request & Web Scraper (TruyenFull)
+├── models/       # Định nghĩa Data Models (Book, User, Analytics,...)
+├── screens/      # Giao diện chính (Home, Reader, Admin, Auth,...)
+├── services/     # Tương tác Firebase, Database & Business Logic
+├── utils/        # Theme, Hằng số, Hàm hỗ trợ (Helper functions)
 ├── widgets/      # Các thành phần giao diện dùng chung (BookCard, SearchBar,...)
-└── main.dart     # Entry point của ứng dụng
-```
-
+└── main.dart     # Entry point & Cấu hình Routes
 ---
+```
 
 ## 🚀 Hướng Dẫn Cài Đặt (Getting Started)
 
