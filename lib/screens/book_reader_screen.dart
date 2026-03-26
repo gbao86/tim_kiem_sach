@@ -42,43 +42,40 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
 
             final isDark = Theme.of(context).brightness == Brightness.dark;
 
-            // 🚀 BỘ CHẶN QUẢNG CÁO PRO MAX (CSS + TẦM SOÁT JS) 🚀
+            // 🚀 BỘ CHẶN QUẢNG CÁO PRO MAX V2 (CSS + MUTATION OBSERVER) 🚀
             String jsInject = '''
-              // 1. Bức tường CSS: Chặn quảng cáo tĩnh và các class phổ biến
+              // 1. Bức tường CSS tĩnh chặn các class phổ biến
               var style = document.createElement('style');
-              style.innerHTML = 'iframe, ins, .ads, .adsbygoogle, .banner, .ad-container, [id^="div-gpt-ad"], [id^="ads"], [class*="quangcao"], .popup-ad { display: none !important; opacity: 0 !important; pointer-events: none !important; z-index: -9999 !important; }';
-              document.head.appendChild(style);
+              style.innerHTML = 'iframe, ins, .ads, .adsbygoogle, .banner, .ad-container, [id^="div-gpt-ad"], [id^="ads"], [class*="quangcao"] { display: none !important; opacity: 0 !important; pointer-events: none !important; z-index: -9999 !important; }';
               
               var meta = document.createElement('meta');
               meta.name = 'viewport';
               meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes';
               document.head.appendChild(meta);
 
-              // 2. Đội tuần tra JS: Quét mỗi 0.5s để đập tan Popup tải ngầm
-              setInterval(function() {
-                var ads = document.querySelectorAll('iframe, ins, .adsbygoogle, [id^="div-gpt-ad"], [id*="google_ads"]');
+              // 2. Kẻ phục kích thông minh: MutationObserver (Nhẹ GPU, hết lỗi updateAcquireFence)
+              var observer = new MutationObserver(function(mutations) {
+                var ads = document.querySelectorAll('iframe, ins, .adsbygoogle, [id^="div-gpt-ad"], [id*="google_ads"], [style*="z-index: 2147483647"], [style*="z-index: 999999"]');
                 for (var i = 0; i < ads.length; i++) {
-                  ads[i].style.display = 'none';
-                  ads[i].style.width = '0px';
-                  ads[i].style.height = '0px';
+                  if (ads[i].style.display !== 'none') {
+                    ads[i].style.display = 'none';
+                    ads[i].style.width = '0px';
+                    ads[i].style.height = '0px';
+                  }
                 }
-                
-                // Cố gắng tìm và ẩn các nút "Đóng" (X) ảo hoặc overlay che màn hình
-                var overlays = document.querySelectorAll('[style*="z-index: 2147483647"], [style*="z-index: 999999"]');
-                for (var j = 0; j < overlays.length; j++) {
-                  overlays[j].style.display = 'none';
-                }
-              }, 500);
+              });
+              
+              // Bắt đầu theo dõi mọi sự thay đổi trên trang web
+              observer.observe(document.body, { childList: true, subtree: true });
             ''';
 
             if (isDark) {
               jsInject += '''
-                var darkStyle = document.createElement('style');
-                darkStyle.innerHTML = 'html { filter: invert(95%) hue-rotate(180deg) !important; background: #121212 !important; }';
-                document.head.appendChild(darkStyle);
+                style.innerHTML += 'html { filter: invert(95%) hue-rotate(180deg) !important; background: #121212 !important; }';
               ''';
             }
 
+            jsInject += 'document.head.appendChild(style);';
             _controller.runJavaScript(jsInject);
 
             if (mounted) setState(() => _isLoading = false);
@@ -137,70 +134,72 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
+      // ĐÃ SỬA: Ép body tràn lên trên, sau AppBar để xóa khoảng trắng thừa
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: Text(
           widget.title,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          // ĐÃ SỬA: Ép màu chữ trắng để luôn nổi bật trên nền truyện
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
         elevation: 0,
         backgroundColor: Colors.transparent,
-        foregroundColor: theme.brightness == Brightness.dark ? Colors.white : Colors.black87,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: SafeArea(
-        child: Stack(
-          children: [
-            Container(color: theme.scaffoldBackgroundColor),
-            WebViewWidget(controller: _controller),
-            if (_isLoading)
-              Container(
-                color: theme.scaffoldBackgroundColor,
-                child: const Center(
-                  child: LoadingIndicator(),
+      // ĐÃ SỬA: Bỏ SafeArea để WebView chiếm toàn bộ màn hình
+      body: Stack(
+        children: [
+          Container(color: theme.scaffoldBackgroundColor),
+          WebViewWidget(controller: _controller),
+          if (_isLoading)
+            Container(
+              color: theme.scaffoldBackgroundColor,
+              child: const Center(
+                child: LoadingIndicator(),
+              ),
+            ),
+
+          Positioned(
+            bottom: 100,
+            right: 16,
+            child: FloatingActionButton(
+              mini: true,
+              heroTag: 'btn_scroll_top',
+              backgroundColor: theme.colorScheme.primary.withOpacity(0.8),
+              foregroundColor: theme.colorScheme.onPrimary,
+              elevation: 4,
+              onPressed: _scrollToTop,
+              child: const Icon(Icons.arrow_upward_rounded),
+            ),
+          ),
+
+          Positioned(
+            bottom: 16,
+            left: 16,
+            right: 16,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildTransparentNavButton(
+                  context: context,
+                  icon: Icons.arrow_back_ios_new_rounded,
+                  label: 'Trang trước',
+                  onTap: _prevPage,
+                  alignment: Alignment.centerLeft,
                 ),
-              ),
-
-            Positioned(
-              bottom: 100,
-              right: 16,
-              child: FloatingActionButton(
-                mini: true,
-                heroTag: 'btn_scroll_top',
-                backgroundColor: theme.colorScheme.primary.withOpacity(0.8),
-                foregroundColor: theme.colorScheme.onPrimary,
-                elevation: 4,
-                onPressed: _scrollToTop,
-                child: const Icon(Icons.arrow_upward_rounded),
-              ),
+                _buildTransparentNavButton(
+                  context: context,
+                  icon: Icons.arrow_forward_ios_rounded,
+                  label: 'Trang sau',
+                  onTap: _nextPage,
+                  alignment: Alignment.centerRight,
+                ),
+              ],
             ),
-
-            Positioned(
-              bottom: 16,
-              left: 16,
-              right: 16,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _buildTransparentNavButton(
-                    context: context,
-                    icon: Icons.arrow_back_ios_new_rounded,
-                    label: 'Trang trước',
-                    onTap: _prevPage,
-                    alignment: Alignment.centerLeft,
-                  ),
-                  _buildTransparentNavButton(
-                    context: context,
-                    icon: Icons.arrow_forward_ios_rounded,
-                    label: 'Trang sau',
-                    onTap: _nextPage,
-                    alignment: Alignment.centerRight,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

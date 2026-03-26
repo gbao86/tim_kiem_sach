@@ -8,7 +8,6 @@ import '../services/auth_service.dart';
 import '../models/user_model.dart';
 import '../models/stat_item.dart';
 import '../widgets/loading_indicator.dart';
-import 'dart:math';
 
 class AdminAnalyticsScreen extends StatefulWidget {
   @override
@@ -28,15 +27,18 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> {
   bool _isLoadingUserSpecific = false;
   bool _isAdmin = false;
 
-  final Random _random = Random();
+  // ĐÃ THÊM: Biến lưu trữ vị trí ngón tay chạm trên biểu đồ tròn
+  int _touchedSearchIndex = -1;
+  int _touchedBookIndex = -1;
 
-  // Bảng màu cố định cho biểu đồ
-  final List<Color> _colorPalette = [
-    Colors.blue.shade600,
-    Colors.green.shade600,
-    Colors.red.shade600,
-    Colors.orange.shade600,
-    Colors.purple.shade600,
+  final List<Color> _chartColors = [
+    const Color(0xFF6C63FF), // Tím nhạt
+    const Color(0xFFFF6584), // Hồng
+    const Color(0xFF38B2AC), // Xanh lơ
+    const Color(0xFFFFB020), // Vàng cam
+    const Color(0xFF00C49F), // Xanh lá
+    const Color(0xFFFF8042), // Cam đậm
+    const Color(0xFF8884d8), // Tím pastel
   ];
 
   @override
@@ -57,21 +59,15 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> {
   }
 
   Future<void> _fetchAllUsersAndOverallAnalytics() async {
-    setState(() {
-      _isLoadingOverall = true;
-    });
+    setState(() => _isLoadingOverall = true);
     try {
       _allUsers = await _adminService.getAllUsers();
       _overallMostFrequentKeywords = await _adminService.getOverallMostFrequentKeywords();
       _overallMostFavoriteBooks = await _adminService.getOverallMostFavoriteBooks();
     } catch (e) {
-      print('Lỗi khi lấy dữ liệu thống kê: $e');
+      debugPrint('Lỗi khi lấy dữ liệu thống kê: $e');
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoadingOverall = false;
-        });
-      }
+      if (mounted) setState(() => _isLoadingOverall = false);
     }
   }
 
@@ -86,133 +82,139 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> {
       _userSearchHistory = await _adminService.getUserSearchHistory(user.uid);
       _userFavoriteBooks = await _adminService.getUserFavoriteBooks(user.uid);
     } catch (e) {
-      print('Lỗi khi lấy dữ liệu người dùng: $e');
+      debugPrint('Lỗi khi lấy dữ liệu người dùng: $e');
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoadingUserSpecific = false;
-        });
-      }
+      if (mounted) setState(() => _isLoadingUserSpecific = false);
     }
   }
 
   String _formatDateTime(DateTime? dateTime) {
     if (dateTime == null) return 'N/A';
-    return DateFormat('HH:mm dd/MM/yyyy').format(dateTime);
+    return DateFormat('HH:mm - dd/MM/yyyy').format(dateTime);
   }
 
-  Color _getColor(int index) {
-    return _colorPalette[index % _colorPalette.length];
+  Color _getColor(int index) => _chartColors[index % _chartColors.length];
+
+  List<MapEntry<String, int>> _statItemsToMapEntries(List<StatItem> items) {
+    final sorted = items.toList()..sort((a, b) => b.count.compareTo(a.count));
+    return sorted.map((e) => MapEntry(e.name, e.count)).toList();
   }
 
-  List<PieChartSectionData> _getSearchHistoryChartData() {
-    if (_userSearchHistory.isEmpty) return [];
-
-    final Map<String, int> queryCounts = {};
-    for (var history in _userSearchHistory) {
-      final query = history['query'] as String? ?? 'Không rõ';
-      if (query.isNotEmpty) {
-        queryCounts[query] = (queryCounts[query] ?? 0) + 1;
-      }
+  List<MapEntry<String, int>> _getSortedSearchHistory() {
+    final Map<String, int> counts = {};
+    for (var h in _userSearchHistory) {
+      final q = h['query'] as String? ?? 'Khác';
+      if (q.isNotEmpty) counts[q] = (counts[q] ?? 0) + 1;
     }
+    return counts.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+  }
 
-    final sortedQueries = queryCounts.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
+  List<MapEntry<String, int>> _getSortedFavoriteBooks() {
+    final Map<String, int> counts = {};
+    for (var b in _userFavoriteBooks) {
+      final t = b['title'] as String? ?? 'Khác';
+      if (t.isNotEmpty) counts[t] = (counts[t] ?? 0) + 1;
+    }
+    return counts.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+  }
 
-    double totalCount = sortedQueries.fold(0, (sum, entry) => sum + entry.value);
+  // ĐÃ SỬA: Thêm tham số touchedIndex để biết miếng nào đang bị chạm
+  List<PieChartSectionData> _buildPieSections(List<MapEntry<String, int>> sortedData, int touchedIndex) {
+    if (sortedData.isEmpty) return [];
+    double total = sortedData.fold(0, (sum, e) => sum + e.value);
 
-    return sortedQueries.take(7).map((entry) {
-      final percentage = (entry.value / totalCount) * 100;
+    return sortedData.take(5).toList().asMap().entries.map((entry) {
+      final index = entry.key;
+      final data = entry.value;
+      final pct = (data.value / total) * 100;
+
+      // Xử lý logic khi chạm
+      final isTouched = index == touchedIndex;
+      final fontSize = isTouched ? 16.0 : 12.0;
+      final radius = isTouched ? 60.0 : 50.0;
+      final titleText = isTouched ? '${data.value} lượt' : '${pct.toStringAsFixed(0)}%';
+
       return PieChartSectionData(
-        color: _getColor(sortedQueries.indexOf(entry)),
-        value: entry.value.toDouble(),
-        title: '${entry.key}\n${percentage.toStringAsFixed(1)}%',
-        radius: 50,
-        titleStyle: const TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.bold,
-          color: Colors.black,
-        ),
-        badgeWidget: Text(entry.value.toString(), style: const TextStyle(color: Colors.white, fontSize: 8)),
-        badgePositionPercentageOffset: 0.9,
+        color: _getColor(index),
+        value: data.value.toDouble(),
+        title: titleText,
+        radius: radius,
+        titleStyle: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold, color: Colors.white),
       );
     }).toList();
   }
 
-  List<PieChartSectionData> _getFavoriteBooksChartData() {
-    if (_userFavoriteBooks.isEmpty) return [];
-
-    final Map<String, int> bookTitleCounts = {};
-    for (var book in _userFavoriteBooks) {
-      final title = book['title'] as String? ?? 'Không có tiêu đề';
-      if (title.isNotEmpty) {
-        bookTitleCounts[title] = (bookTitleCounts[title] ?? 0) + 1;
-      }
-    }
-
-    final sortedBooks = bookTitleCounts.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
-
-    double totalCount = sortedBooks.fold(0, (sum, entry) => sum + entry.value);
-
-    return sortedBooks.take(7).map((entry) {
-      final percentage = (entry.value / totalCount) * 100;
-      return PieChartSectionData(
-        color: _getColor(sortedBooks.indexOf(entry)),
-        value: entry.value.toDouble(),
-        title: '${entry.key}\n${percentage.toStringAsFixed(1)}%',
-        radius: 50,
-        titleStyle: const TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.bold,
-          color: Colors.black,
-        ),
-        badgeWidget: Text(entry.value.toString(), style: const TextStyle(color: Colors.white, fontSize: 8)),
-        badgePositionPercentageOffset: 0.9,
-      );
-    }).toList();
+  Widget _buildLegend(List<MapEntry<String, int>> sortedData) {
+    return Wrap(
+      spacing: 16,
+      runSpacing: 12,
+      alignment: WrapAlignment.center,
+      children: sortedData.take(5).toList().asMap().entries.map((entry) {
+        final index = entry.key;
+        final label = entry.value.key;
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 14,
+              height: 14,
+              decoration: BoxDecoration(color: _getColor(index), shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label.length > 20 ? '${label.substring(0, 20)}...' : label,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            ),
+          ],
+        );
+      }).toList(),
+    );
   }
 
   List<BarChartGroupData> _getOverallKeywordsBarChartData() {
-    final top5Keywords = _overallMostFrequentKeywords.toList()
-      ..sort((a, b) => b.count.compareTo(a.count));
+    final top5 = _overallMostFrequentKeywords.toList()..sort((a, b) => b.count.compareTo(a.count));
+    double maxVal = top5.isNotEmpty ? top5.first.count.toDouble() : 10;
 
-    return top5Keywords.take(5).toList().asMap().entries.map((entry) {
-      int index = entry.key;
-      StatItem item = entry.value;
+    return top5.take(5).toList().asMap().entries.map((e) {
       return BarChartGroupData(
-        x: index,
+        x: e.key,
         barRods: [
           BarChartRodData(
-            toY: item.count.toDouble(),
-            color: _getColor(index),
-            width: 20,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+            toY: e.value.count.toDouble(),
+            color: _getColor(e.key),
+            width: 32,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+            backDrawRodData: BackgroundBarChartRodData(
+              show: true,
+              toY: maxVal * 1.2,
+              color: Colors.grey.withOpacity(0.1),
+            ),
           ),
         ],
-        showingTooltipIndicators: [0],
       );
     }).toList();
   }
 
   List<BarChartGroupData> _getOverallFavoriteBooksBarChartData() {
-    final top5Books = _overallMostFavoriteBooks.toList()
-      ..sort((a, b) => b.count.compareTo(a.count));
+    final top5 = _overallMostFavoriteBooks.toList()..sort((a, b) => b.count.compareTo(a.count));
+    double maxVal = top5.isNotEmpty ? top5.first.count.toDouble() : 10;
 
-    return top5Books.take(5).toList().asMap().entries.map((entry) {
-      int index = entry.key;
-      StatItem item = entry.value;
+    return top5.take(5).toList().asMap().entries.map((e) {
       return BarChartGroupData(
-        x: index,
+        x: e.key,
         barRods: [
           BarChartRodData(
-            toY: item.count.toDouble(),
-            color: _getColor(index),
-            width: 20,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+            toY: e.value.count.toDouble(),
+            color: _getColor(e.key),
+            width: 32,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+            backDrawRodData: BackgroundBarChartRodData(
+              show: true,
+              toY: maxVal * 1.2,
+              color: Colors.grey.withOpacity(0.1),
+            ),
           ),
         ],
-        showingTooltipIndicators: [0],
       );
     }).toList();
   }
@@ -220,495 +222,329 @@ class _AdminAnalyticsScreenState extends State<AdminAnalyticsScreen> {
   @override
   Widget build(BuildContext context) {
     if (!_isAdmin) {
-      return const Scaffold(
-        body: Center(child: Text('Bạn không có quyền truy cập màn hình này')),
+      return Scaffold(
+        appBar: AppBar(title: const Text('Truy cập từ chối')),
+        body: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.security, size: 64, color: Colors.redAccent),
+              SizedBox(height: 16),
+              Text('Bạn không có quyền quản trị viên', style: TextStyle(fontSize: 18)),
+            ],
+          ),
+        ),
       );
     }
 
+    double keywordMaxY = _overallMostFrequentKeywords.isNotEmpty
+        ? _overallMostFrequentKeywords.first.count.toDouble() * 1.4 : 10;
+    double bookMaxY = _overallMostFavoriteBooks.isNotEmpty
+        ? _overallMostFavoriteBooks.first.count.toDouble() * 1.4 : 10;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Thống kê & Phân tích')),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: AppBar(
+        title: const Text('Bảng Phân Tích', style: TextStyle(fontWeight: FontWeight.bold)),
+        elevation: 0,
+        centerTitle: true,
+      ),
       body: _isLoadingOverall
           ? const Center(child: LoadingIndicator())
-          : SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+          : RefreshIndicator(
+        onRefresh: _fetchAllUsersAndOverallAnalytics,
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSectionTitle('Tổng Quan Hệ Thống'),
+              const SizedBox(height: 16),
+
+              // --- TỪ KHÓA TÌM KIẾM ---
+              _buildChartCard(
+                title: 'Top 5 Từ Khóa Tìm Kiếm',
+                icon: Icons.search_rounded,
+                isEmpty: _overallMostFrequentKeywords.isEmpty,
+                chartWidget: BarChart(
+                  BarChartData(
+                    maxY: keywordMaxY,
+                    barTouchData: BarTouchData(
+                      touchTooltipData: BarTouchTooltipData(
+                        fitInsideHorizontally: true,
+                        fitInsideVertically: true,
+                        getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                          return BarTooltipItem(
+                            '${rod.toY.toInt()} lượt',
+                            const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                          );
+                        },
+                      ),
+                    ),
+                    barGroups: _getOverallKeywordsBarChartData(),
+                    borderData: FlBorderData(show: false),
+                    gridData: FlGridData(show: false),
+                    titlesData: const FlTitlesData(show: false),
+                  ),
+                ),
+                legendWidget: _buildLegend(_statItemsToMapEntries(_overallMostFrequentKeywords)),
+              ),
+              const SizedBox(height: 24),
+
+              // --- SÁCH YÊU THÍCH ---
+              _buildChartCard(
+                title: 'Top 5 Sách Yêu Thích',
+                icon: Icons.favorite_rounded,
+                isEmpty: _overallMostFavoriteBooks.isEmpty,
+                chartWidget: BarChart(
+                  BarChartData(
+                    maxY: bookMaxY,
+                    barTouchData: BarTouchData(
+                      touchTooltipData: BarTouchTooltipData(
+                        fitInsideHorizontally: true,
+                        fitInsideVertically: true,
+                        getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                          return BarTooltipItem(
+                            '${rod.toY.toInt()} lượt',
+                            const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                          );
+                        },
+                      ),
+                    ),
+                    barGroups: _getOverallFavoriteBooksBarChartData(),
+                    borderData: FlBorderData(show: false),
+                    gridData: FlGridData(show: false),
+                    titlesData: const FlTitlesData(show: false),
+                  ),
+                ),
+                legendWidget: _buildLegend(_statItemsToMapEntries(_overallMostFavoriteBooks)),
+              ),
+
+              const SizedBox(height: 32),
+              const Divider(height: 1, thickness: 1),
+              const SizedBox(height: 32),
+
+              // --- PHÂN TÍCH THEO USER ---
+              _buildSectionTitle('Phân Tích Người Dùng'),
+              const SizedBox(height: 16),
+
+              Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey.withOpacity(0.2)),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<UserModel>(
+                    value: _selectedUser,
+                    hint: const Text('Tra cứu theo người dùng...'),
+                    isExpanded: true,
+                    icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                    onChanged: (UserModel? newValue) {
+                      if (newValue != null) _fetchUserSpecificAnalytics(newValue);
+                    },
+                    items: _allUsers.map((UserModel user) {
+                      return DropdownMenuItem<UserModel>(
+                        value: user,
+                        child: Text(user.displayName ?? user.email,
+                            style: const TextStyle(fontWeight: FontWeight.w500)),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              if (_selectedUser != null)
+                _isLoadingUserSpecific
+                    ? const Center(child: LoadingIndicator())
+                    : _buildUserSpecificView(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // --- UI HELPER WIDGETS ---
+
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title,
+      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+    );
+  }
+
+  Widget _buildChartCard({required String title, required IconData icon, required bool isEmpty, required Widget chartWidget, Widget? legendWidget}) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: Theme.of(context).primaryColor.withOpacity(0.1), shape: BoxShape.circle),
+                child: Icon(icon, color: Theme.of(context).primaryColor, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const SizedBox(height: 24),
+          isEmpty
+              ? _buildEmptyState()
+              : Column(
+            children: [
+              SizedBox(height: 200, child: chartWidget),
+              if (legendWidget != null) ...[
+                const SizedBox(height: 24),
+                legendWidget,
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 20),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Thống kê chung',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
-
-            Text(
-              'Biểu đồ phân bổ từ khóa tìm kiếm phổ biến nhất (Top 5)',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-            _overallMostFrequentKeywords.isEmpty
-                ? const Text('Không có dữ liệu từ khóa để hiển thị biểu đồ.')
-                : Card(
-              elevation: 4,
-              child: SizedBox(
-                height: 300,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: BarChart(
-                    BarChartData(
-                      barGroups: _getOverallKeywordsBarChartData(),
-                      groupsSpace: 20,
-                      titlesData: FlTitlesData(
-                        show: true,
-                        bottomTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            reservedSize: 100,
-                            getTitlesWidget: (value, meta) {
-                              final index = value.toInt();
-                              final sortedKeywords = _overallMostFrequentKeywords.toList()
-                                ..sort((a, b) => b.count.compareTo(a.count));
-                              if (index >= 0 && index < sortedKeywords.take(5).length) {
-                                final label = sortedKeywords[index].name.length > 12
-                                    ? '${sortedKeywords[index].name.substring(0, 3)}...'
-                                    : sortedKeywords[index].name;
-                                return Transform.rotate(
-                                  angle: (3.1415926535 / 180),
-                                  alignment: Alignment.topRight,
-                                  child: Padding(
-                                    padding: const EdgeInsets.only(top: 8.0),
-                                    child: Text(
-                                      label,
-                                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
-                                      overflow: TextOverflow.ellipsis,
-                                      maxLines: 1,
-                                    ),
-                                  ),
-                                );
-                              }
-                              return const SizedBox.shrink();
-                            },
-                          ),
-                        ),
-                        leftTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            reservedSize: 40,
-                            getTitlesWidget: (value, meta) {
-                              return Text(
-                                value.toInt().toString(),
-                                style: const TextStyle(fontSize: 11),
-                              );
-                            },
-                          ),
-                        ),
-                        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      ),
-                      borderData: FlBorderData(show: false),
-                      gridData: FlGridData(
-                        show: true,
-                        drawVerticalLine: false,
-                        horizontalInterval: (_overallMostFrequentKeywords.isNotEmpty
-                            ? _overallMostFrequentKeywords.first.count.toDouble() / 5
-                            : 1),
-                        getDrawingHorizontalLine: (value) {
-                          return FlLine(
-                            color: Colors.grey.withOpacity(0.2),
-                            strokeWidth: 1,
-                          );
-                        },
-                      ),
-                      barTouchData: BarTouchData(
-                        touchTooltipData: BarTouchTooltipData(
-                          tooltipPadding: const EdgeInsets.all(8),
-                          tooltipMargin: 8,
-                          getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                            final sortedKeywords = _overallMostFrequentKeywords.toList()
-                              ..sort((a, b) => b.count.compareTo(a.count));
-                            if (group.x.toInt() >= sortedKeywords.take(5).length) return null;
-                            return BarTooltipItem(
-                              '',
-                              const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 5,
-                              ),
-                              children: [
-                                TextSpan(
-                                  text: ' (${rod.toY.toInt()} lượt)',
-                                  style: const TextStyle(
-                                    color: Colors.yellow,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            );
-                          },
-                        ),
-                      ),
-                      maxY: (_overallMostFrequentKeywords.isNotEmpty
-                          ? _overallMostFrequentKeywords.first.count.toDouble() * 1.3
-                          : 10) +
-                          1,
-                      minY: 0,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              'Tất cả từ khóa tìm kiếm phổ biến',
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-            _overallMostFrequentKeywords.isEmpty
-                ? const Text('Không có dữ liệu từ khóa.')
-                : Card(
-              elevation: 2,
-              child: SizedBox(
-                height: 200,
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  itemCount: _overallMostFrequentKeywords.length,
-                  itemBuilder: (context, index) {
-                    final item = _overallMostFrequentKeywords[index];
-                    return ListTile(
-                      leading: Text('${index + 1}.', style: const TextStyle(fontWeight: FontWeight.bold)),
-                      title: Text(item.name),
-                      trailing: Text('${item.count} lượt'),
-                    );
-                  },
-                ),
-              ),
-            ),
-            const SizedBox(height: 30),
-
-            Text(
-              'Biểu đồ phân bổ sách được yêu thích nhất (Top 5)',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-            _overallMostFavoriteBooks.isEmpty
-                ? const Text('Không có dữ liệu sách yêu thích để hiển thị biểu đồ.')
-                : Card(
-              elevation: 4,
-              child: SizedBox(
-                height: 300,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: BarChart(
-                    BarChartData(
-                      barGroups: _getOverallFavoriteBooksBarChartData(),
-                      groupsSpace: 20,
-                      titlesData: FlTitlesData(
-                        show: true,
-                        bottomTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            reservedSize: 100,
-                            getTitlesWidget: (value, meta) {
-                              final index = value.toInt();
-                              final sortedBooks = _overallMostFavoriteBooks.toList()
-                                ..sort((a, b) => b.count.compareTo(a.count));
-                              if (index >= 0 && index < sortedBooks.take(5).length) {
-                                final label = sortedBooks[index].name.length > 12
-                                    ? '${sortedBooks[index].name.substring(0, 3)}...'
-                                    : sortedBooks[index].name;
-                                return Transform.rotate(
-                                  angle: (3.1415926535 / 180),
-                                  alignment: Alignment.topRight,
-                                  child: Padding(
-                                    padding: const EdgeInsets.only(top: 8.0),
-                                    child: Text(
-                                      label,
-                                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
-                                      overflow: TextOverflow.ellipsis,
-                                      maxLines: 1,
-                                    ),
-                                  ),
-                                );
-                              }
-                              return const SizedBox.shrink();
-                            },
-                          ),
-                        ),
-                        leftTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            reservedSize: 40,
-                            getTitlesWidget: (value, meta) {
-                              return Text(
-                                value.toInt().toString(),
-                                style: const TextStyle(fontSize: 11),
-                              );
-                            },
-                          ),
-                        ),
-                        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      ),
-                      borderData: FlBorderData(show: false),
-                      gridData: FlGridData(
-                        show: true,
-                        drawVerticalLine: false,
-                        horizontalInterval: (_overallMostFavoriteBooks.isNotEmpty
-                            ? _overallMostFavoriteBooks.first.count.toDouble() / 5
-                            : 1),
-                        getDrawingHorizontalLine: (value) {
-                          return FlLine(
-                            color: Colors.grey.withOpacity(0.2),
-                            strokeWidth: 1,
-                          );
-                        },
-                      ),
-                      barTouchData: BarTouchData(
-                        touchTooltipData: BarTouchTooltipData(
-                          tooltipPadding: const EdgeInsets.all(8),
-                          tooltipMargin: 8,
-                          getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                            final sortedBooks = _overallMostFavoriteBooks.toList()
-                              ..sort((a, b) => b.count.compareTo(a.count));
-                            if (group.x.toInt() >= sortedBooks.take(5).length) return null;
-                            return BarTooltipItem(
-                              '',
-                              const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 5,
-                              ),
-                              children: [
-                                TextSpan(
-                                  text: ' (${rod.toY.toInt()} lượt)',
-                                  style: const TextStyle(
-                                    color: Colors.yellow,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            );
-                          },
-                        ),
-                      ),
-                      maxY: (_overallMostFavoriteBooks.isNotEmpty
-                          ? _overallMostFavoriteBooks.first.count.toDouble() * 1.3
-                          : 10) +
-                          1,
-                      minY: 0,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              'Tất cả sách được yêu thích nhất',
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-            _overallMostFavoriteBooks.isEmpty
-                ? const Text('Không có dữ liệu sách yêu thích.')
-                : Card(
-              elevation: 2,
-              child: SizedBox(
-                height: 200,
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  itemCount: _overallMostFavoriteBooks.length,
-                  itemBuilder: (context, index) {
-                    final item = _overallMostFavoriteBooks[index];
-                    return ListTile(
-                      leading: Text('${index + 1}.', style: const TextStyle(fontWeight: FontWeight.bold)),
-                      title: Text(item.name),
-                      trailing: Text('${item.count} lượt yêu thích'),
-                    );
-                  },
-                ),
-              ),
-            ),
-            const SizedBox(height: 30),
-
-            const Divider(),
-            const SizedBox(height: 20),
-
-            const Text(
-              'Phân tích theo người dùng',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-            DropdownButtonFormField<UserModel>(
-              value: _selectedUser,
-              hint: const Text('Chọn một người dùng'),
-              isExpanded: true,
-              onChanged: (UserModel? newValue) {
-                if (newValue != null) {
-                  _fetchUserSpecificAnalytics(newValue);
-                }
-              },
-              items: _allUsers.map<DropdownMenuItem<UserModel>>((UserModel user) {
-                return DropdownMenuItem<UserModel>(
-                  value: user,
-                  child: Text(user.displayName ?? user.email),
-                );
-              }).toList(),
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            if (_selectedUser != null)
-              _isLoadingUserSpecific
-                  ? const Center(child: LoadingIndicator())
-                  : Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Chi tiết người dùng: ${_selectedUser!.displayName ?? _selectedUser!.email}',
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 10),
-                  Card(
-                    margin: EdgeInsets.zero,
-                    child: Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Email: ${_selectedUser!.email}'),
-                          Text('UID: ${_selectedUser!.uid}'),
-                          Text('Vai trò: ${_selectedUser!.role}'),
-                          Text('Lần truy cập cuối: ${_formatDateTime(_selectedUser!.lastSignInTime)}'),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  Text(
-                    'Phân bổ từ khóa tìm kiếm của ${_selectedUser!.displayName ?? 'người dùng này'}',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 10),
-                  _userSearchHistory.isEmpty
-                      ? const Text('Không có lịch sử tìm kiếm để hiển thị biểu đồ.')
-                      : SizedBox(
-                    height: 200,
-                    child: PieChart(
-                      PieChartData(
-                        sections: _getSearchHistoryChartData(),
-                        sectionsSpace: 2,
-                        centerSpaceRadius: 40,
-                        borderData: FlBorderData(show: false),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-
-                  Text(
-                    'Chi tiết lịch sử tìm kiếm (${_userSearchHistory.length})',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 10),
-                  _userSearchHistory.isEmpty
-                      ? const Text('Không có lịch sử tìm kiếm.')
-                      : Card(
-                    elevation: 2,
-                    child: SizedBox(
-                      height: 200,
-                      child: ListView.builder(
-                        shrinkWrap: true,
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        itemCount: _userSearchHistory.length,
-                        itemBuilder: (context, index) {
-                          final history = _userSearchHistory[index];
-                          DateTime? timestamp;
-                          if (history['timestamp'] is Timestamp) {
-                            timestamp = (history['timestamp'] as Timestamp).toDate();
-                          } else if (history['timestamp'] is String) {
-                            try {
-                              timestamp = DateTime.parse(history['timestamp']);
-                            } catch (e) {
-                              print('Lỗi parse timestamp: $e');
-                            }
-                          }
-                          return ListTile(
-                            title: Text(history['query'] ?? 'N/A'),
-                            subtitle: Text(_formatDateTime(timestamp)),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  Text(
-                    'Phân bổ sách yêu thích của ${_selectedUser!.displayName ?? 'người dùng này'}',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 10),
-                  _userFavoriteBooks.isEmpty
-                      ? const Text('Không có sách yêu thích để hiển thị biểu đồ.')
-                      : SizedBox(
-                    height: 200,
-                    child: PieChart(
-                      PieChartData(
-                        sections: _getFavoriteBooksChartData(),
-                        sectionsSpace: 2,
-                        centerSpaceRadius: 40,
-                        borderData: FlBorderData(show: false),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-
-                  Text(
-                    'Chi tiết sách yêu thích (${_userFavoriteBooks.length})',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 10),
-                  _userFavoriteBooks.isEmpty
-                      ? const Text('Không có sách yêu thích.')
-                      : Card(
-                    elevation: 2,
-                    child: SizedBox(
-                      height: 200,
-                      child: ListView.builder(
-                        shrinkWrap: true,
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        itemCount: _userFavoriteBooks.length,
-                        itemBuilder: (context, index) {
-                          final book = _userFavoriteBooks[index];
-                          return ListTile(
-                            leading: (book['coverUrl'] != null && book['coverUrl'].isNotEmpty)
-                                ? SizedBox(
-                              width: 40,
-                              height: 60,
-                              child: Image.network(
-                                book['coverUrl'],
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) =>
-                                const Icon(Icons.broken_image, size: 30, color: Colors.grey),
-                              ),
-                            )
-                                : const Icon(Icons.book, size: 40, color: Colors.blueGrey),
-                            title: Text(book['title'] ?? 'Không có tiêu đề'),
-                            subtitle: Text(book['author'] ?? 'Không rõ tác giả'),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+            Icon(Icons.data_usage_rounded, size: 48, color: Colors.grey.withOpacity(0.4)),
+            const SizedBox(height: 12),
+            const Text('Chưa có dữ liệu thống kê', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w500)),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildUserSpecificView() {
+    final searchData = _getSortedSearchHistory();
+    final bookData = _getSortedFavoriteBooks();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Theme.of(context).primaryColor, Theme.of(context).primaryColor.withOpacity(0.8)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 30,
+                backgroundColor: Colors.white,
+                child: Text(
+                  (_selectedUser!.displayName ?? _selectedUser!.email)[0].toUpperCase(),
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(_selectedUser!.displayName ?? 'Người dùng', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    Text(_selectedUser!.email, style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 14)),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
+                      child: Text('Online: ${_formatDateTime(_selectedUser!.lastSignInTime)}', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                    )
+                  ],
+                ),
+              )
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+
+        // --- ĐÃ SỬA: Thêm pieTouchData cho biểu đồ tìm kiếm ---
+        _buildChartCard(
+          title: 'Tỉ trọng Tìm kiếm',
+          icon: Icons.pie_chart_rounded,
+          isEmpty: searchData.isEmpty,
+          chartWidget: PieChart(
+            PieChartData(
+              pieTouchData: PieTouchData(
+                touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                  setState(() {
+                    if (!event.isInterestedForInteractions ||
+                        pieTouchResponse == null ||
+                        pieTouchResponse.touchedSection == null) {
+                      _touchedSearchIndex = -1;
+                      return;
+                    }
+                    _touchedSearchIndex = pieTouchResponse.touchedSection!.touchedSectionIndex;
+                  });
+                },
+              ),
+              sections: _buildPieSections(searchData, _touchedSearchIndex), // Truyền touchedIndex vào
+              centerSpaceRadius: 40,
+              sectionsSpace: 4,
+            ),
+          ),
+          legendWidget: _buildLegend(searchData),
+        ),
+        const SizedBox(height: 24),
+
+        // --- ĐÃ SỬA: Thêm pieTouchData cho biểu đồ sách yêu thích ---
+        _buildChartCard(
+          title: 'Thể loại Sách Yêu Thích',
+          icon: Icons.bookmark_added_rounded,
+          isEmpty: bookData.isEmpty,
+          chartWidget: PieChart(
+            PieChartData(
+              pieTouchData: PieTouchData(
+                touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                  setState(() {
+                    if (!event.isInterestedForInteractions ||
+                        pieTouchResponse == null ||
+                        pieTouchResponse.touchedSection == null) {
+                      _touchedBookIndex = -1;
+                      return;
+                    }
+                    _touchedBookIndex = pieTouchResponse.touchedSection!.touchedSectionIndex;
+                  });
+                },
+              ),
+              sections: _buildPieSections(bookData, _touchedBookIndex), // Truyền touchedIndex vào
+              centerSpaceRadius: 40,
+              sectionsSpace: 4,
+            ),
+          ),
+          legendWidget: _buildLegend(bookData),
+        ),
+      ],
     );
   }
 }
