@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.2] - 2026-03-26
+
+### ✨ Thêm mới (Added)
+- **Hệ thống xác thực:** Tích hợp phương thức đăng nhập và đăng ký bằng Email/Mật khẩu bên cạnh Google Sign-In.
+- **Bộ lọc người dùng:** Thêm tính năng sắp xếp danh sách theo Tên (A-Z), Thời gian tạo (Mới nhất/Cũ nhất) và Lọc theo quyền Quản trị viên.
+- **Tương tác biểu đồ:** Thêm hiệu ứng chạm (Touch interaction) cho biểu đồ tròn, hiển thị số lượt cụ thể khi nhấn vào từng phần.
+- **Thoát ứng dụng:** Nút "Quay lại sau" tại màn hình đăng nhập giờ đây cho phép thoát ứng dụng an toàn qua hệ thống.
+
+### 🎨 Cải thiện giao diện (UI/UX)
+- **Tối ưu tốc độ:** Rút ngắn thời gian Animation màn hình Login giúp cảm giác ứng dụng phản hồi nhanh hơn.
+- **Dashboard Admin:** Thiết kế lại trang Phân tích (Analytics) theo phong cách hiện đại, sử dụng thẻ Card bo góc và màu sắc đồng bộ.
+- **Chú thích biểu đồ:** Thêm bảng chú thích (Legend) cho tất cả biểu đồ tròn và biểu đồ cột để dễ dàng theo dõi dữ liệu.
+- **Quản lý người dùng:** Nâng cấp giao diện danh sách User với Huy hiệu quyền (Role Badge) và các nút hành động trực quan.
+
+### 🛠 Sửa lỗi (Fixed)
+- **Lỗi tràn viền (Overflow):** Khắc phục triệt để lỗi hiển thị trên các thiết bị màn hình hẹp (4.4px overflow).
+- **Lỗi hình ảnh:** Sửa lỗi "Invalid image data" khi tải logo Google bằng cách chuyển sang định dạng PNG.
+- **Lỗi màn hình đen:** Sửa lỗi điều hướng khiến màn hình bị đen sau khi đăng nhập thành công.
+- **Lỗi hiển thị biểu đồ:** Sửa lỗi Tooltip bị che khuất khi nhấn vào các cột dữ liệu cao nhất.
+
+---
+
 ## [2.0.0] - 2026-03-25
 
 ### Added
