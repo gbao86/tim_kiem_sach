@@ -8,6 +8,18 @@
 
 ---
 
+### 🎥 Video Demo
+## 🎥 Video Demo & Preview
+
+Bạn có thể xem video giới thiệu tại đây:
+Trải nghiệm thực tế các tính năng tìm kiếm đa nguồn và trình đọc sách thông minh:
+
+👉 [Xem Video Demo trên YouTube](https://youtu.be/s3EeOYbCrl0?si=GE2SGLBO_agpzHvt)
+👉 **[Xem Video Demo v1.0.1 trên YouTube](https://youtu.be/s3EeOYbCrl0?si=GE2SGLBO_agpzHvt)**
+
+👉 Hiện tại ứng dụng đã cập nhật lên phiên bản mới và đã thêm/cải thiện đáng kể chức năng và giao diện, video demo cho phiên bản mới sẽ sớm được cập nhật
+---
+
 ## 🚀 Có gì mới ở phiên bản 2.0.4?
 
 *   **🔍 Tìm kiếm 4 nguồn song song**: Kết hợp dữ liệu từ **Google Books**, **Open Library**, **TruyenFull** và **Mê Truyện Chữ**.
