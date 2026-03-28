@@ -55,6 +55,17 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     super.dispose();
   }
 
+  /// Sau khi đăng nhập thành công: pop nếu mở Login bằng push (vd. từ Yêu thích);
+  /// nếu Login là root (sau logout replace /login hoặc màn đầu) thì reset về [AuthWrapper] tại '/'.
+  void _navigateAfterAuthSuccess() {
+    final nav = Navigator.of(context);
+    if (nav.canPop()) {
+      nav.pop();
+    } else {
+      nav.pushNamedAndRemoveUntil('/', (route) => false);
+    }
+  }
+
   // Hàm xử lý Đăng nhập / Đăng ký bằng Email
   Future<void> _submitEmailAuth() async {
     if (!_formKey.currentState!.validate()) return;
@@ -72,12 +83,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         await authService.signUpWithEmailAndPassword(email, password);
       }
 
-      // ĐÃ SỬA: Sửa lỗi màn hình đen khi lùi trang
-      if (mounted) {
-        if (Navigator.canPop(context)) {
-          Navigator.pop(context);
-        }
-      }
+      if (mounted) _navigateAfterAuthSuccess();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -100,14 +106,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     final authService = Provider.of<AuthService>(context, listen: false);
 
     try {
-      await authService.signInWithGoogle();
+      final cred = await authService.signInWithGoogle();
+      if (cred == null) return; // Người dùng hủy chọn tài khoản Google
 
-      // ĐÃ SỬA: Sửa lỗi màn hình đen khi lùi trang
-      if (mounted) {
-        if (Navigator.canPop(context)) {
-          Navigator.pop(context);
-        }
-      }
+      if (mounted) _navigateAfterAuthSuccess();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

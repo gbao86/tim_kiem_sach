@@ -6,7 +6,6 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 
 // Screens
 import 'screens/home_screen.dart';
-import 'screens/history_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/search_results_screen.dart';
@@ -85,9 +84,13 @@ class AuthWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final authService = Provider.of<AuthService>(context);
-    // Nếu đã đăng nhập thì vào thẳng MainScreen, ngược lại về Login
-    return authService.isLoggedIn ? const MainScreen() : LoginScreen();
+    // Consumer đảm bảo rebuild khi auth thay đổi (Provider.of cũng listen mặc định,
+    // nhưng Consumer rõ ràng hơn cho luồng đăng nhập/đăng xuất).
+    return Consumer<AuthService>(
+      builder: (context, auth, _) {
+        return auth.isLoggedIn ? const MainScreen() : LoginScreen();
+      },
+    );
   }
 }
 

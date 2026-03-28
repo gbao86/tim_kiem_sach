@@ -13,35 +13,18 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  String? userRole;
-  bool isLoadingRole = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadUserRole();
-  }
-
-  Future<void> _loadUserRole() async {
-    final authService = Provider.of<AuthService>(context, listen: false);
-    final userModel = await authService.getCurrentUser();
-    if (mounted) {
-      setState(() {
-        userRole = userModel?.role ?? 'user';
-        isLoadingRole = false;
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final authService = Provider.of<AuthService>(context);
     final isDarkMode = themeProvider.isDarkMode;
 
-    if (isLoadingRole || authService.isLoading) {
+    // Role lấy từ Firestore ngay sau khi đồng bộ user (AuthService); chờ đến khi có role thì mới vẽ (tránh nhấp nháy sai).
+    if (authService.isLoading || !authService.isRoleReady) {
       return const Scaffold(body: LoadingIndicator());
     }
+
+    final userRole = authService.firestoreRole ?? 'user';
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -58,7 +41,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: Column(
           children: [
             // 1. Profile Header
-            _buildProfileHeader(authService, isDarkMode),
+            _buildProfileHeader(authService, isDarkMode, userRole),
             const SizedBox(height: 24),
 
             // 2. Giao diện Section
@@ -106,13 +89,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onTap: () async {
                   await authService.signOut();
                   if (context.mounted) {
-                    Navigator.pushReplacementNamed(context, '/login');
+                    // Về '/' (AuthWrapper) thay vì '/login' — nếu chỉ replace sang /login
+                    // thì cây không còn AuthWrapper, đăng nhập lại sẽ không chuyển MainScreen.
+                    Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
                   }
                 },
               ),
             ]),
 
-            // 4. Admin Section (Chỉ hiện nếu là admin)
+            // 4. Admin Section (Chỉ hiện nếu là admin — theo field role trên Firestore)
             if (userRole == 'admin') ...[
               const SizedBox(height: 24),
               _buildSectionTitle('Quản trị hệ thống'),
@@ -155,7 +140,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   // --- WIDGET HELPER ---
 
-  Widget _buildProfileHeader(AuthService auth, bool isDark) {
+  Widget _buildProfileHeader(AuthService auth, bool isDark, String userRole) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -206,7 +191,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    userRole?.toUpperCase() ?? 'USER',
+                    userRole.toUpperCase(),
                     style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
                   ),
                 )

@@ -4,6 +4,7 @@ import '../models/book.dart';
 
 class TruyenFullScraper {
   final String baseUrl = 'https://truyenfull.vision';
+  final Duration requestTimeout = const Duration(seconds: 8);
 
   // Fake thông tin trình duyệt cực chuẩn để không bị TruyenFull chặn
   final Map<String, String> headers = {
@@ -11,12 +12,21 @@ class TruyenFullScraper {
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
   };
 
-  Future<List<Book>> searchBooks(String query) async {
+  Future<List<Book>> searchBooks(
+    String query, {
+    bool fetchDetails = false,
+    int page = 1,
+  }) async {
     final List<Book> books = [];
 
     try {
-      final String searchUrl = '$baseUrl/tim-kiem/?tukhoa=${Uri.encodeComponent(query)}';
-      final response = await http.get(Uri.parse(searchUrl), headers: headers);
+      final String tukhoa = Uri.encodeComponent(query);
+      final String searchUrl = page <= 1
+          ? '$baseUrl/tim-kiem/?tukhoa=$tukhoa'
+          : '$baseUrl/tim-kiem/?tukhoa=$tukhoa&page=$page';
+      final response = await http
+          .get(Uri.parse(searchUrl), headers: headers)
+          .timeout(requestTimeout);
 
       if (response.statusCode == 200) {
         var document = parser.parse(response.body);
@@ -45,16 +55,37 @@ class TruyenFullScraper {
               coverElement?.attributes['src'] ?? '';
 
           if (detailUrl.isNotEmpty) {
-            // Đẩy nhiệm vụ "Cào sâu" vào danh sách chờ xử lý song song
-            detailFutures.add(_fetchBookDetails(detailUrl, title, author, coverUrl));
+            if (fetchDetails) {
+              // Đẩy nhiệm vụ "Cào sâu" vào danh sách chờ xử lý song song
+              detailFutures.add(_fetchBookDetails(detailUrl, title, author, coverUrl));
+            } else {
+              // Trả về kết quả nhanh: chỉ lấy dữ liệu cơ bản, cào sâu khi mở chi tiết
+              final bookId = 'tf_${Uri.parse(detailUrl).pathSegments.join('_')}';
+              books.add(Book(
+                id: bookId,
+                title: title,
+                authors: [author],
+                description: 'Đang cập nhật mô tả...',
+                thumbnail: coverUrl,
+                previewLink: detailUrl,
+                rating: 0.0,
+                pageCount: 0,
+                publishedDate: 'Đang cập nhật',
+                categories: const ['Truyện Chữ'],
+                publisher: 'TruyenFull',
+                language: 'vi',
+              ));
+            }
           }
         }
 
-        // Chạy song song tất cả các luồng cào chi tiết để tiết kiệm thời gian
-        var detailedBooks = await Future.wait(detailFutures);
+        if (fetchDetails) {
+          // Chạy song song tất cả các luồng cào chi tiết để tiết kiệm thời gian
+          var detailedBooks = await Future.wait(detailFutures);
 
-        for (var book in detailedBooks) {
-          if (book != null) books.add(book);
+          for (var book in detailedBooks) {
+            if (book != null) books.add(book);
+          }
         }
       } else {
         print('TruyenFull chặn truy cập: Mã ${response.statusCode}');
@@ -66,10 +97,19 @@ class TruyenFullScraper {
     return books;
   }
 
+  Future<Book?> fetchDetailsFromUrl(String url, {String? title, String? author, String? coverUrl}) async {
+    final safeTitle = title ?? 'Không có tiêu đề';
+    final safeAuthor = author ?? 'Đang cập nhật';
+    final safeCover = coverUrl ?? '';
+    return _fetchBookDetails(url, safeTitle, safeAuthor, safeCover);
+  }
+
   // --- HÀM CÀO SÂU: VÀO TẬN TRANG CHI TIẾT ĐỂ LẤY THÊM INFO ---
   Future<Book?> _fetchBookDetails(String url, String title, String author, String coverUrl) async {
     try {
-      final response = await http.get(Uri.parse(url), headers: headers);
+      final response = await http
+          .get(Uri.parse(url), headers: headers)
+          .timeout(requestTimeout);
       if (response.statusCode == 200) {
         var doc = parser.parse(response.body);
 

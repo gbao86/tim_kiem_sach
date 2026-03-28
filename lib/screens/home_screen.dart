@@ -109,7 +109,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
     final results = await Future.wait([
       googleApi.searchBooks(targetKeyword).catchError((_) => <Book>[]),
-      truyenFullApi.searchBooks(targetKeyword).catchError((_) => <Book>[]),
+      truyenFullApi.searchBooks(targetKeyword, fetchDetails: false).catchError((_) => <Book>[]),
     ]);
 
     List<Book> combinedBooks = [];

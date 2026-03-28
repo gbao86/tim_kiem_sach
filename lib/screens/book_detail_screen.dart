@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:uuid/uuid.dart';
 import 'book_reader_screen.dart';
+import '../api/truyenfull_scraper.dart';
 import '../models/book.dart';
 import '../widgets/loading_indicator.dart';
 import '../services/auth_service.dart';
@@ -24,11 +25,37 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   bool _isFavorite = false;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final Uuid _uuid = Uuid();
+  late Book _book;
+  bool _isLoadingTruyenFullDetails = false;
+  final TruyenFullScraper _truyenFullScraper = TruyenFullScraper();
 
   @override
   void initState() {
     super.initState();
+    _book = widget.book;
     _checkIfFavorite();
+    _maybeLoadTruyenFullDetails();
+  }
+
+  Future<void> _maybeLoadTruyenFullDetails() async {
+    if (_book.publisher != 'TruyenFull') return;
+    if (_book.previewLink.isEmpty) return;
+
+    setState(() => _isLoadingTruyenFullDetails = true);
+    try {
+      final detailed = await _truyenFullScraper.fetchDetailsFromUrl(
+        _book.previewLink,
+        title: _book.title,
+        author: _book.authors.isNotEmpty ? _book.authors.first : null,
+        coverUrl: _book.thumbnail,
+      );
+      if (!mounted) return;
+      if (detailed != null) {
+        setState(() => _book = detailed);
+      }
+    } finally {
+      if (mounted) setState(() => _isLoadingTruyenFullDetails = false);
+    }
   }
 
   Future<void> _checkIfFavorite() async {
@@ -112,15 +139,12 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
 
   Future<void> _shareBook() async {
     try {
-      final String title = widget.book.title ?? 'Cuốn sách không tên';
-      final String authors = widget.book.authors.isNotEmpty ? widget.book
-          .authors.join(', ') : 'Tác giả không rõ';
-      final String description = widget.book.description?.isNotEmpty ?? false
-          ? (widget.book.description!.length > 200 ? '${widget.book.description!
-          .substring(0, 200)}...' : widget.book.description!)
+      final String title = _book.title;
+      final String authors = _book.authors.isNotEmpty ? _book.authors.join(', ') : 'Tác giả không rõ';
+      final String description = _book.description.isNotEmpty
+          ? (_book.description.length > 200 ? '${_book.description.substring(0, 200)}...' : _book.description)
           : 'Không có mô tả';
-      final String previewLink = widget.book.previewLink.isNotEmpty ? widget
-          .book.previewLink : 'Không có liên kết';
+      final String previewLink = _book.previewLink.isNotEmpty ? _book.previewLink : 'Không có liên kết';
 
       final String shareText =
           "Hãy xem cuốn sách này: '$title' của $authors.\n"
@@ -141,7 +165,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   }
 
   Future<void> _launchPreviewLink() async {
-    if (widget.book.previewLink.isEmpty) {
+    if (_book.previewLink.isEmpty) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Không có bản đọc thử cho cuốn sách này.')),
@@ -149,7 +173,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
       return;
     }
 
-    String secureUrl = widget.book.previewLink;
+    String secureUrl = _book.previewLink;
     if (secureUrl.startsWith('http://')) {
       secureUrl = secureUrl.replaceFirst('http://', 'https://');
     }
@@ -158,7 +182,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
       context,
       MaterialPageRoute(
         builder: (context) => BookReaderScreen(
-          title: widget.book.title,
+          title: _book.title,
           url: secureUrl,
         ),
       ),
@@ -176,7 +200,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
             pinned: true,
             flexibleSpace: FlexibleSpaceBar(
               title: Text(
-                widget.book.title,
+                _book.title,
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -196,7 +220,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                   Hero(
                     tag: 'book-cover-${widget.book.id}',
                     child: CachedNetworkImage(
-                      imageUrl: widget.book.thumbnail,
+                      imageUrl: _book.thumbnail,
                       fit: BoxFit.cover,
                       placeholder: (context, url) => LoadingIndicator(),
                       errorWidget: (context, url, error) => Image.network(
@@ -239,7 +263,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                       ClipRRect(
                         borderRadius: BorderRadius.circular(8.0),
                         child: CachedNetworkImage(
-                          imageUrl: widget.book.thumbnail,
+                          imageUrl: _book.thumbnail,
                           width: 120,
                           height: 180,
                           fit: BoxFit.cover,
@@ -263,23 +287,23 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              widget.book.title,
+                              _book.title,
                               style: Theme.of(context).textTheme.titleLarge,
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Tác giả: ${widget.book.authors.join(', ')}',
+                              'Tác giả: ${_book.authors.join(', ')}',
                               style: Theme.of(context).textTheme.titleMedium,
                             ),
                             const SizedBox(height: 8),
-                            if (widget.book.rating > 0)
+                            if (_book.rating > 0)
                               Row(
                                 children: [
                                   ...List.generate(5, (index) {
                                     return Icon(
-                                      index < widget.book.rating.floor()
+                                      index < _book.rating.floor()
                                           ? Icons.star
-                                          : (index < widget.book.rating)
+                                          : (index < _book.rating)
                                           ? Icons.star_half
                                           : Icons.star_border,
                                       color: Colors.amber,
@@ -288,7 +312,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                                   }),
                                   const SizedBox(width: 4),
                                   Text(
-                                    '${widget.book.rating}',
+                                    '${_book.rating}',
                                     style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -297,17 +321,17 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                               ),
                             const SizedBox(height: 8),
                             Text(
-                              'Nhà xuất bản: ${widget.book.publisher}',
+                              'Nhà xuất bản: ${_book.publisher}',
                               style: Theme.of(context).textTheme.bodyMedium,
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Ngày xuất bản: ${widget.book.publishedDate}',
+                              'Ngày xuất bản: ${_book.publishedDate}',
                               style: Theme.of(context).textTheme.bodyMedium,
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Số trang: ${widget.book.pageCount}',
+                              'Số trang: ${_book.pageCount}',
                               style: Theme.of(context).textTheme.bodyMedium,
                             ),
                           ],
@@ -316,17 +340,28 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                     ],
                   ),
                   const SizedBox(height: 24),
+                  if (_isLoadingTruyenFullDetails)
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 12.0),
+                      child: Row(
+                        children: [
+                          SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
+                          SizedBox(width: 10),
+                          Text('Đang tải chi tiết...'),
+                        ],
+                      ),
+                    ),
                   Text(
                     'Mô tả',
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    widget.book.description,
+                    _book.description,
                     style: Theme.of(context).textTheme.bodyLarge,
                   ),
                   const SizedBox(height: 24),
-                  if (widget.book.categories.isNotEmpty) ...[
+                  if (_book.categories.isNotEmpty) ...[
                     Text(
                       'Thể loại',
                       style: Theme.of(context).textTheme.titleLarge,
@@ -335,7 +370,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: widget.book.categories.map((category) {
+                      children: _book.categories.map((category) {
                         return Chip(
                           label: Text(category),
                           backgroundColor: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1),

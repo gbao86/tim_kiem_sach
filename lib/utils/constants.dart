@@ -2,6 +2,9 @@ class Constants {
   // API
   static const String googleBooksBaseUrl = 'https://www.googleapis.com/books/v1/volumes';
   static const int maxResults = 40;
+  /// Kết quả tìm kiếm: tải ban đầu và mỗi lần cuộn thêm
+  static const int searchInitialBatchSize = 30;
+  static const int searchLoadMoreBatchSize = 15;
 
   // Firestore collections
   static const String usersCollection = 'users';

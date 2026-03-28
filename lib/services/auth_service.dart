@@ -12,14 +12,25 @@ class AuthService with ChangeNotifier {
   User? _user;
   bool _isLoading = false;
 
+  /// Role đọc từ Firestore sau khi ghi/merge document (`user` hoặc `admin`).
+  /// User mới không có doc → ghi `role: user` rồi gán vào đây.
+  /// `null` khi đã đăng nhập nhưng chưa đồng bộ xong (ví dụ mở app có phiên sẵn).
+  String? _firestoreRole;
+
   AuthService() {
+    // Mỗi khi phiên đăng nhập thay đổi (đăng nhập / mở app đã có phiên / đăng xuất):
+    // đồng bộ document `users/{uid}` trên Firestore và cập nhật [_firestoreRole].
     _auth.authStateChanges().listen((User? user) {
       _user = user;
-      notifyListeners();
-      _updateLoginStatus(user != null);
-      if (user != null) {
-        _ensureUserDocumentExists(user);
+      if (user == null) {
+        _firestoreRole = null;
+        notifyListeners();
+        _updateLoginStatus(false);
+        return;
       }
+      notifyListeners();
+      _updateLoginStatus(true);
+      _syncFirestoreRoleAfterEnsure(user);
     });
   }
 
@@ -27,7 +38,21 @@ class AuthService with ChangeNotifier {
   bool get isLoggedIn => _user != null;
   bool get isLoading => _isLoading;
 
-  Future<void> _ensureUserDocumentExists(User user) async {
+  /// Role hiện tại từ Firebase (`user` / `admin`). Chỉ dùng khi [isRoleReady] == true.
+  String? get firestoreRole => _firestoreRole;
+
+  /// Đã có role từ Firestore để hiển thị Cài đặt (sau đăng nhập hoặc sau khi sync xong).
+  bool get isRoleReady => !isLoggedIn || _firestoreRole != null;
+
+  Future<void> _syncFirestoreRoleAfterEnsure(User user) async {
+    final role = await _ensureUserDocumentExists(user);
+    if (_user?.uid != user.uid) return;
+    _firestoreRole = role;
+    notifyListeners();
+  }
+
+  /// Tạo/cập nhật doc `users/{uid}`; user mới → `role: user`. Trả về role sau khi ghi (đọc lại từ server).
+  Future<String> _ensureUserDocumentExists(User user) async {
     final userDocRef = _firestore.collection('users').doc(user.uid);
     final userDocSnapshot = await userDocRef.get();
 
@@ -52,7 +77,13 @@ class AuthService with ChangeNotifier {
       userDataToUpdate,
       SetOptions(merge: true),
     );
-    print('User document processed for ${user.email ?? user.uid}');
+
+    final snap = await userDocRef.get();
+    final raw = snap.data()?['role'];
+    if (raw is String && raw.isNotEmpty) {
+      return raw;
+    }
+    return 'user';
   }
 
   // --- HÀM MỚI: ĐĂNG NHẬP BẰNG EMAIL & MẬT KHẨU ---
@@ -61,13 +92,14 @@ class AuthService with ChangeNotifier {
       _isLoading = true;
       notifyListeners();
 
-      final userCredential = await _auth.signInWithEmailAndPassword(
+      final cred = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
-
-      if (userCredential.user != null) {
-        await _ensureUserDocumentExists(userCredential.user!);
+      // Ghi / cập nhật bản ghi user trên Firestore trước khi coi đăng nhập xong.
+      // (authStateChanges cũng gọi _ensureUserDocumentExists — merge:true nên an toàn nếu chạy gần nhau.)
+      if (cred.user != null) {
+        _firestoreRole = await _ensureUserDocumentExists(cred.user!);
       }
 
       _isLoading = false;
@@ -85,13 +117,12 @@ class AuthService with ChangeNotifier {
       _isLoading = true;
       notifyListeners();
 
-      final userCredential = await _auth.createUserWithEmailAndPassword(
+      final cred = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
-
-      if (userCredential.user != null) {
-        await _ensureUserDocumentExists(userCredential.user!);
+      if (cred.user != null) {
+        _firestoreRole = await _ensureUserDocumentExists(cred.user!);
       }
 
       _isLoading = false;
@@ -123,9 +154,8 @@ class AuthService with ChangeNotifier {
       );
 
       final userCredential = await _auth.signInWithCredential(credential);
-
       if (userCredential.user != null) {
-        await _ensureUserDocumentExists(userCredential.user!);
+        _firestoreRole = await _ensureUserDocumentExists(userCredential.user!);
       }
 
       _isLoading = false;
@@ -166,6 +196,10 @@ class AuthService with ChangeNotifier {
       return false;
     }
 
+    if (_firestoreRole != null) {
+      return _firestoreRole == 'admin';
+    }
+
     try {
       DocumentSnapshot userDoc = await _firestore.collection('users').doc(currentUser.uid).get();
       if (userDoc.exists) {
@@ -184,6 +218,15 @@ class AuthService with ChangeNotifier {
       DocumentSnapshot doc = await _firestore.collection('users').doc(_user!.uid).get();
       if (doc.exists) {
         return UserModel.fromMap(doc.data() as Map<String, dynamic>);
+      }
+      if (_firestoreRole != null) {
+        return UserModel(
+          uid: _user!.uid,
+          email: _user!.email ?? '',
+          role: _firestoreRole!,
+          displayName: _user!.displayName,
+          photoURL: _user!.photoURL,
+        );
       }
     }
     return null;
