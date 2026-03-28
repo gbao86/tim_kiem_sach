@@ -43,7 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Tính ổn định:** Cải thiện cơ chế `Future.wait` để app không bị treo nếu một trong các nguồn API gặp lỗi hoặc timeout.
 
 ---
-## [2.0.3] - 2026-03-28
+## [2.0.3] - 2026-03-27
 
 ### ✨ Thêm mới (Added)
 - **Phân trang kết quả tìm kiếm:** Màn `SearchResultsScreen` tải trước **30** kết quả (gom Google Books + TruyenFull); kéo gần cuối danh sách sẽ tự tải thêm **15** cuốn mỗi lần cho đến khi hết dữ liệu. `GoogleBooksApi` hỗ trợ `startIndex` / `maxResults`; `TruyenFullScraper` hỗ trợ tham số `page` cho các trang sau. Hằng số `searchInitialBatchSize` / `searchLoadMoreBatchSize` trong `Constants`.
