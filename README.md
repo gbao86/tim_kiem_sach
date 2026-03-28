@@ -8,6 +8,16 @@
 
 ---
 
+## 🎥 Video Demo & Preview
+
+⚡ Hiện tại ứng dụng đã cập nhật lên phiên bản mới và đã thêm/cải thiện đáng kể chức năng và giao diện, video demo cho phiên bản mới sẽ sớm được cập nhật
+
+Bạn có thể xem video giới thiệu tại đây:
+
+👉 **[Xem Video Demo v1.0.1 trên YouTube](https://youtu.be/s3EeOYbCrl0?si=GE2SGLBO_agpzHvt)**
+
+---
+
 ## 🚀 Có gì mới ở phiên bản 2.0.4?
 
 *   **🔍 Tìm kiếm 4 nguồn song song**: Kết hợp dữ liệu từ **Google Books**, **Open Library**, **TruyenFull** và **Mê Truyện Chữ**.
