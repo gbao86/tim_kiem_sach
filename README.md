@@ -1,38 +1,37 @@
-# 📚 Tìm Kiếm Sách (Book Search App) - Ultimate Edition
+# 📚 Tìm Kiếm Sách (Book Search App) - Ultimate Edition v2.0.4
 
 [![Flutter](https://img.shields.io/badge/Flutter-3.29.2-blue.svg)](https://flutter.dev/)
 [![Firebase](https://img.shields.io/badge/Firebase-Powered-orange.svg)](https://firebase.google.com/)
-[![License](https://img.shields.io/badge/License-Private-red.svg)](#)
+[![Version](https://img.shields.io/badge/Version-2.0.4-green.svg)](#)
 
-**Tìm Kiếm Sách** là một ứng dụng di động đa nền tảng mạnh mẽ, kết hợp giữa hệ sinh thái **Flutter** và **Firebase**. Ứng dụng mang đến trải nghiệm đọc sách "tất cả trong một" nhờ khả năng tổng hợp dữ liệu từ nhiều nguồn lớn (Global & Local) cùng trình đọc sách tối ưu hóa trải nghiệm người dùng.
-
----
-
-## 🎥 Video Demo & Preview
-
-Trải nghiệm thực tế các tính năng tìm kiếm đa nguồn và trình đọc sách thông minh:
-
-👉 **[Xem Video Demo v1.0.1 trên YouTube](https://youtu.be/s3EeOYbCrl0?si=GE2SGLBO_agpzHvt)**
+**Tìm Kiếm Sách** là một ứng dụng di động đa nền tảng mạnh mẽ, kết hợp giữa hệ sinh thái **Flutter** và **Firebase**. Ứng dụng mang đến trải nghiệm đọc sách "tất cả trong một" nhờ khả năng tổng hợp dữ liệu từ 4 nguồn lớn cùng hệ thống lọc thể loại thông minh.
 
 ---
 
-## ✨ Tính Năng Nổi Bật
+## 🚀 Có gì mới ở phiên bản 2.0.4?
+
+*   **🔍 Tìm kiếm 4 nguồn song song**: Kết hợp dữ liệu từ **Google Books**, **Open Library**, **TruyenFull** và **Mê Truyện Chữ**.
+*   **🏷️ Hệ thống Lọc thông minh**: 
+    *   Thanh lọc 27 thể loại chuyên sâu (Tiên hiệp, Ngôn tình, Sách học thuật, Truyện tranh...).
+    *   Tự động ánh xạ từ khóa tiếng Anh (`subject mapping`) để tìm kiếm chính xác trên các thư viện quốc tế.
+*   **🎨 Giao diện Thể loại Mới**: Các thẻ thể loại tại Trang chủ được thiết kế lại với màu sắc đặc trưng, sinh động.
+*   **⚡ Tối ưu hiệu năng**: Cải thiện tốc độ tải trang và xử lý phân trang (Infinite Scroll) mượt mà cho đa nguồn.
+
+---
+
+## ✨ Tính Năng Cốt Lõi
 
 ### 👤 Dành Cho Người Dùng (Users)
-*   **🔍 Tìm kiếm Đa nguồn (Hybrid Search)**: 
-    *   Tích hợp **Google Books API** cho kho sách quốc tế và chính thống.
-    *   Sử dụng **TruyenFull Scraper** (Deep Scraping) để truy cập hàng chục thể loại truyện chữ Việt Nam (Tiên hiệp, Ngôn tình, Kiếm hiệp...).
-*   **📖 Trình đọc sách In-app Pro**:
-    *   **Smart Ad-Blocker**: Tự động chặn popup, banner và quảng cáo rác từ các nguồn web.
-    *   **Auto Dark Mode**: Tự động đảo màu (Smart Invert) trang web theo giao diện hệ thống.
-    *   **Hỗ trợ Thu phóng**: Kích hoạt Pinch-to-zoom (2 ngón tay) cho mọi trang web.
-    *   **Điều hướng nhanh**: Hệ thống nút chuyển trang trong suốt và nút "Lên đầu trang" (Scroll-to-top).
-*   **❤️ Quản lý cá nhân**: Lưu sách yêu thích (Firestore), quản lý lịch sử tìm kiếm và đồng bộ tài khoản qua **Firebase Auth**.
+*   **🔍 Hybrid Search Engine**: Tìm kiếm đồng thời sách giấy, ebook quốc tế và truyện chữ Việt Nam.
+*   **📖 In-app Reader Pro**:
+    *   **Smart Ad-Blocker**: Chặn sạch quảng cáo từ các nguồn web truyện.
+    *   **Auto Dark Mode**: Đảo màu trang web đồng bộ với giao diện ứng dụng.
+    *   **Pinch-to-zoom**: Hỗ trợ thu phóng mượt mà.
+*   **❤️ Đồng bộ đám mây**: Lưu yêu thích và lịch sử tìm kiếm qua Firebase Firestore.
 
 ### 🛡️ Dành Cho Quản Trị Viên (Admins)
-*   **📊 Dashboard Thống kê**: Trực quan hóa dữ liệu truy cập và xu hướng tìm kiếm bằng biểu đồ **fl_chart**.
-*   **👥 Quản lý Người dùng**: Phân quyền chi tiết (Admin/User) và theo dõi nhật ký hoạt động.
-*   **🔔 Push Notifications**: Gửi thông báo đẩy qua **Firebase Cloud Messaging (FCM)**.
+*   **📊 Dashboard Thống kê**: Biểu đồ phân tích lưu lượng và xu hướng đọc sách (`fl_chart`).
+*   **👥 Quản lý User**: Phân quyền Admin/User và quản lý tài khoản chuyên sâu.
 
 ---
 
@@ -40,69 +39,37 @@ Trải nghiệm thực tế các tính năng tìm kiếm đa nguồn và trình 
 
 | Thành phần | Công nghệ / Thư viện |
 | :--- | :--- |
-| **Framework** | [Flutter](https://flutter.dev/) (SDK >=3.0.0) |
-| **State Management** | `provider` |
+| **Framework** | Flutter (SDK >=3.0.0) |
+| **API/Scraping** | Google Books, Open Library, TruyenFull, Metruyenchu |
 | **Backend** | Firebase (Auth, Firestore, Messaging, Functions) |
-| **Networking** | `http`, `html` (Web Scraping) |
-| **Giao diện** | `webview_flutter`, `fl_chart`, `cached_network_image` |
-| **Tiện ích** | `share_plus`, `intl`, `theme_provider` |
+| **Networking** | `http`, `html` (Web Scraping), `webview_flutter` |
 
 ---
 
-## 📂 Cấu Trúc Thư Mục Chính
+## 📂 Cấu Trúc Thư Mục
 
 ```text
 lib/
-├── api/          # Xử lý HTTP Request & Web Scraper (TruyenFull)
-├── models/       # Định nghĩa Data Models (Book, User, Analytics,...)
-├── screens/      # Giao diện chính (Home, Reader, Admin, Auth,...)
-├── services/     # Tương tác Firebase, Database & Business Logic
-├── utils/        # Theme, Hằng số, Hàm hỗ trợ (Helper functions)
-├── widgets/      # Các thành phần giao diện dùng chung (BookCard, SearchBar,...)
-└── main.dart     # Entry point & Cấu hình Routes
----
+├── api/          # Google Books, Open Library, TruyenFull, Metruyenchu
+├── models/       # Book, User, Analytics models
+├── screens/      # Home, SearchResults, Reader, Admin panels
+├── services/     # Firebase & Database logic
+└── widgets/      # BookCard, CategoryBar, CustomSearchBar
 ```
-
-## 🚀 Hướng Dẫn Cài Đặt (Getting Started)
-
-### 👉 Yêu Cầu Hệ Thống
-* Cài đặt **Flutter SDK** phiên bản ổn định mới nhất.
-* Cài đặt **Android Studio** hoặc **Xcode** (cho iOS) với các công cụ phát triển cần thiết.
-* Có sẵn file `google-services.json` (Android) và cấu hình Firebase phù hợp.
-
-### 👉 Các Bước Chạy Ứng Dụng
-
-1. **Clone mã nguồn về máy** (nếu bạn sử dụng git):
-   ```bash
-   git clone <địa_chỉ_repository_của_bạn>
-   cd tim_kiem_sach
-   ```
-
-2. **Cài đặt các thư viện phụ thuộc (dependencies)**:
-   ```bash
-   flutter pub get
-   ```
-
-3. **Cấu hình Firebase**:
-   * Đặt file `google-services.json` vào thư mục `android/app/`.
-   * Thực hiện nạp đúng tham số môi trường và API key cho các dịch vụ Firebase nếu có.
-
-4. **Chạy ứng dụng**:
-   Bạn có thể chạy dự án trên máy ảo (Emulator) hoặc thiết bị thật (Physical device):
-   ```bash
-   flutter run
-   ```
 
 ---
 
 ## 📜 Nhật Ký Thay Đổi (Changelog)
 
-Để theo dõi các bản cập nhật mới nhất, thay đổi tính năng và sửa lỗi, vui lòng xem chi tiết tại file **[CHANGELOG.md](./CHANGELOG.md)**.
+Xem chi tiết lịch sử cập nhật tại file **[CHANGELOG.md](./CHANGELOG.md)**.
 
 ---
 
-## 🤝 Giấy Phép & Phân Phối (License & Distribution)
+## 🚀 Hướng Dẫn Chạy App
 
-Dự án này là mã nguồn kín, với tùy chọn xuất bản (publish_to) được vô hiệu hóa để đảm bảo đây là một private package (`publish_to: 'none'`). Xem thêm file [LICENSE](./LICENSE) (nếu được cung cấp) để nắm rõ chi tiết về điều khoản sử dụng.
+1. **Cài đặt dependencies**: `flutter pub get`
+2. **Cấu hình Firebase**: Thêm `google-services.json` vào `android/app/`.
+3. **Run**: `flutter run`
 
-> Cảm ơn bạn đã quan tâm đến dự án **Tìm Kiếm Sách**. Nếu có bất cứ câu hỏi nào, xin vui lòng kiểm tra source code hoặc liên hệ quản trị viên!
+---
+> Phiên bản v2.0.4 mang đến sự lột xác về khả năng tìm kiếm và trải nghiệm người dùng. Cảm ơn bạn đã đồng hành cùng **Tìm Kiếm Sách**!

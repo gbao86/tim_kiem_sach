@@ -3,6 +3,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import '../api/google_books_api.dart';
 import '../api/truyenfull_scraper.dart';
+import '../api/open_library_api.dart';
+import '../api/metruyenchu_scraper.dart';
 import '../models/book.dart';
 import '../services/database_service.dart';
 import '../utils/constants.dart';
@@ -12,8 +14,9 @@ import 'book_detail_screen.dart';
 
 class SearchResultsScreen extends StatefulWidget {
   final String query;
+  final String? categorySearchKey; // Key tiếng Anh để search sâu
 
-  const SearchResultsScreen({super.key, required this.query});
+  const SearchResultsScreen({super.key, required this.query, this.categorySearchKey});
 
   @override
   State<SearchResultsScreen> createState() => _SearchResultsScreenState();
@@ -22,15 +25,24 @@ class SearchResultsScreen extends StatefulWidget {
 class _SearchResultsScreenState extends State<SearchResultsScreen> {
   final GoogleBooksApi _googleApi = GoogleBooksApi();
   final TruyenFullScraper _truyenFullScraper = TruyenFullScraper();
+  final OpenLibraryApi _openLibraryApi = OpenLibraryApi();
+  final MetruyenchuScraper _metruyenchuScraper = MetruyenchuScraper();
+  
   final DatabaseService _databaseService = DatabaseService();
   final ScrollController _scrollController = ScrollController();
 
-  List<Book> _books = [];
+  List<Book> _allBooks = [];
   List<Book> _queue = [];
+
   int _googleStartIndex = 0;
   int _truyenPage = 1;
+  int _openLibraryPage = 1;
+  int _metruyenPage = 1;
+
   bool _googleExhausted = false;
   bool _truyenExhausted = false;
+  bool _openLibraryExhausted = false;
+  bool _metruyenExhausted = false;
 
   bool _isInitialLoading = true;
   bool _isLoadingMore = false;
@@ -63,55 +75,63 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
     setState(() {
       _isInitialLoading = true;
       _errorMessage = null;
-      _books = [];
+      _allBooks = [];
       _queue = [];
       _googleStartIndex = 0;
       _truyenPage = 1;
+      _openLibraryPage = 1;
+      _metruyenPage = 1;
       _googleExhausted = false;
       _truyenExhausted = false;
+      _openLibraryExhausted = false;
+      _metruyenExhausted = false;
       _hasMore = true;
     });
 
     try {
-      final List<Book> googleBooks = await _googleApi
-          .searchBooks(
-            widget.query,
-            startIndex: 0,
-            maxResults: Constants.searchInitialBatchSize,
-          )
-          .catchError((e) {
-        debugPrint('Lỗi Google Books: $e');
-        return <Book>[];
-      });
+      // Nếu có categorySearchKey, ta sẽ ưu tiên tìm kiếm theo subject trên Google/OpenLib
+      String googleQuery = widget.query;
+      if (widget.categorySearchKey != null) {
+        googleQuery = 'subject:${widget.categorySearchKey}';
+      }
 
-      final List<Book> truyenBooks = await _truyenFullScraper
-          .searchBooks(widget.query, fetchDetails: false, page: 1)
-          .catchError((e) {
-        debugPrint('Lỗi TruyenFull: $e');
-        return <Book>[];
-      });
+      final results = await Future.wait([
+        _googleApi.searchBooks(googleQuery, startIndex: 0, maxResults: 15).catchError((e) => <Book>[]),
+        _truyenFullScraper.searchBooks(widget.query, page: 1).catchError((e) => <Book>[]),
+        _openLibraryApi.searchBooks(googleQuery, limit: 15, page: 1).catchError((e) => <Book>[]),
+        _metruyenchuScraper.searchBooks(widget.query, page: 1).catchError((e) => <Book>[]),
+      ]);
 
-      final merged = <Book>[...googleBooks, ...truyenBooks];
+      final List<Book> googleBooks = results[0];
+      final List<Book> truyenBooks = results[1];
+      final List<Book> openLibBooks = results[2];
+      final List<Book> metruyenBooks = results[3];
+
+      final merged = <Book>[...googleBooks, ...truyenBooks, ...openLibBooks, ...metruyenBooks];
+      
       _googleStartIndex = googleBooks.length;
       _truyenPage = 2;
-      // Hết Google khi không có kết quả hoặc API trả ít hơn số đã xin → không còn trang sau.
-      _googleExhausted = googleBooks.isEmpty ||
-          googleBooks.length < Constants.searchInitialBatchSize;
+      _openLibraryPage = 2;
+      _metruyenPage = 2;
+
+      _googleExhausted = googleBooks.isEmpty || googleBooks.length < 15;
       _truyenExhausted = truyenBooks.isEmpty;
+      _openLibraryExhausted = openLibBooks.isEmpty;
+      _metruyenExhausted = metruyenBooks.isEmpty;
 
       final int first = Constants.searchInitialBatchSize;
       if (merged.length > first) {
-        _books = merged.sublist(0, first);
+        _allBooks = merged.sublist(0, first);
         _queue = merged.sublist(first);
       } else {
-        _books = List.from(merged);
+        _allBooks = List.from(merged);
         _queue = [];
       }
 
-      _hasMore = _queue.isNotEmpty || !_googleExhausted || !_truyenExhausted;
+      _hasMore = _queue.isNotEmpty || !_googleExhausted || !_truyenExhausted || !_openLibraryExhausted || !_metruyenExhausted;
 
       try {
-        await _databaseService.saveSearchHistory(widget.query, _books.length);
+        await _databaseService.saveSearchHistory(widget.query, _allBooks.length);
       } catch (e) {
         debugPrint('Error saving search history: $e');
       }
@@ -125,37 +145,40 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
   }
 
   Future<void> _fetchNextChunkIntoQueue() async {
+    String googleQuery = widget.query;
+    if (widget.categorySearchKey != null) {
+      googleQuery = 'subject:${widget.categorySearchKey}';
+    }
+
     if (!_googleExhausted) {
-      final batch = await _googleApi
-          .searchBooks(widget.query, startIndex: _googleStartIndex, maxResults: Constants.maxResults)
-          .catchError((e) {
-        debugPrint('Lỗi Google Books (load thêm): $e');
-        return <Book>[];
-      });
-      if (batch.isEmpty) {
-        _googleExhausted = true;
-        await _fetchNextChunkIntoQueue();
-        return;
-      }
+      final batch = await _googleApi.searchBooks(googleQuery, startIndex: _googleStartIndex, maxResults: 15).catchError((e) => <Book>[]);
+      if (batch.isEmpty) { _googleExhausted = true; await _fetchNextChunkIntoQueue(); return; }
       _googleStartIndex += batch.length;
       _queue.addAll(batch);
-      if (batch.length < Constants.maxResults) {
-        _googleExhausted = true;
-      }
+      if (batch.length < 15) _googleExhausted = true;
       return;
     }
+    
+    if (!_openLibraryExhausted) {
+      final batch = await _openLibraryApi.searchBooks(googleQuery, limit: 15, page: _openLibraryPage).catchError((e) => <Book>[]);
+      _openLibraryPage++;
+      if (batch.isEmpty) { _openLibraryExhausted = true; await _fetchNextChunkIntoQueue(); return; }
+      _queue.addAll(batch);
+      return;
+    }
+
     if (!_truyenExhausted) {
-      final batch = await _truyenFullScraper
-          .searchBooks(widget.query, fetchDetails: false, page: _truyenPage)
-          .catchError((e) {
-        debugPrint('Lỗi TruyenFull (load thêm): $e');
-        return <Book>[];
-      });
+      final batch = await _truyenFullScraper.searchBooks(widget.query, page: _truyenPage).catchError((e) => <Book>[]);
       _truyenPage++;
-      if (batch.isEmpty) {
-        _truyenExhausted = true;
-        return;
-      }
+      if (batch.isEmpty) { _truyenExhausted = true; await _fetchNextChunkIntoQueue(); return; }
+      _queue.addAll(batch);
+      return;
+    }
+
+    if (!_metruyenExhausted) {
+      final batch = await _metruyenchuScraper.searchBooks(widget.query, page: _metruyenPage).catchError((e) => <Book>[]);
+      _metruyenPage++;
+      if (batch.isEmpty) { _metruyenExhausted = true; return; }
       _queue.addAll(batch);
     }
   }
@@ -165,15 +188,15 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
     while (need > 0) {
       if (_queue.isNotEmpty) {
         final take = min(need, _queue.length);
-        _books.addAll(_queue.sublist(0, take));
+        _allBooks.addAll(_queue.sublist(0, take));
         _queue.removeRange(0, take);
         need -= take;
         continue;
       }
-      if (_googleExhausted && _truyenExhausted) break;
+      if (_googleExhausted && _truyenExhausted && _openLibraryExhausted && _metruyenExhausted) break;
       final before = _queue.length;
       await _fetchNextChunkIntoQueue();
-      if (_queue.length == before && _googleExhausted && _truyenExhausted) break;
+      if (_queue.length == before && _googleExhausted && _truyenExhausted && _openLibraryExhausted && _metruyenExhausted) break;
     }
   }
 
@@ -182,7 +205,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
     setState(() => _isLoadingMore = true);
     try {
       await _appendCount(Constants.searchLoadMoreBatchSize);
-      _hasMore = _queue.isNotEmpty || !_googleExhausted || !_truyenExhausted;
+      _hasMore = _queue.isNotEmpty || !_googleExhausted || !_truyenExhausted || !_openLibraryExhausted || !_metruyenExhausted;
     } finally {
       if (mounted) setState(() => _isLoadingMore = false);
     }
@@ -192,7 +215,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Kết quả tìm kiếm: "${widget.query}"'),
+        title: Text('Kết quả: "${widget.query}"'),
         elevation: 0,
       ),
       body: _buildBody(),
@@ -205,72 +228,25 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
     }
     if (_errorMessage != null) {
       return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, color: Colors.red, size: 60),
-              const SizedBox(height: 16),
-              Text(
-                'Đã xảy ra lỗi: $_errorMessage',
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 16),
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _loadInitial,
-                child: const Text('Thử lại'),
-              ),
-            ],
-          ),
-        ),
+        child: Padding(padding: const EdgeInsets.all(16.0), child: Text('Lỗi: $_errorMessage')),
       );
     }
-    if (_books.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.search_off, size: 80, color: Colors.grey),
-            const SizedBox(height: 16),
-            Text(
-              Constants.noResults,
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Thử tìm kiếm với từ khóa khác',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-          ],
-        ),
-      );
+    if (_allBooks.isEmpty) {
+      return Center(child: Text(Constants.noResults));
     }
 
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.all(16),
-      itemCount: _books.length + (_hasMore ? 1 : 0),
+      itemCount: _allBooks.length + (_hasMore ? 1 : 0),
       itemBuilder: (context, index) {
-        if (index >= _books.length) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16.0),
-            child: Center(
-              child: _isLoadingMore
-                  ? const SizedBox(
-                      width: 28,
-                      height: 28,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text(
-                      'Kéo để tải thêm',
-                      style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-                    ),
-            ),
+        if (index >= _allBooks.length) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16.0),
+            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
           );
         }
-        final book = _books[index];
+        final book = _allBooks[index];
         return Padding(
           padding: const EdgeInsets.only(bottom: 16.0),
           child: BookCard(
@@ -278,9 +254,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => BookDetailScreen(book: book),
-                ),
+                MaterialPageRoute(builder: (context) => BookDetailScreen(book: book)),
               );
             },
           ),
