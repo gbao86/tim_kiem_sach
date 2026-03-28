@@ -151,12 +151,11 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
           "Mô tả: $description\n"
           "Link preview: $previewLink";
 
-      await SharePlus.instance.share(ShareParams(
-        text: shareText,
+      await Share.share(
+        shareText,
         subject: 'Đề xuất sách: $title',
-      ));
-    }
-      catch (e) {
+      );
+    } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Lỗi khi chia sẻ: $e')),
@@ -236,7 +235,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                         end: Alignment.bottomCenter,
                         colors: [
                           Colors.transparent,
-                          Colors.black.withValues(alpha: 0.7),
+                          Colors.black.withOpacity(0.7),
                         ],
                       ),
                     ),
@@ -370,51 +369,72 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: _book.categories.map((category) {
+                      children: _book.categories.map((cat) {
                         return Chip(
-                          label: Text(category),
-                          backgroundColor: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1),
+                          label: Text(cat),
+                          backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
                           labelStyle: TextStyle(
-                            color: Theme.of(context).colorScheme.secondary,
+                            color: Theme.of(context).primaryColor,
+                            fontWeight: FontWeight.bold,
                           ),
                         );
                       }).toList(),
                     ),
+                    const SizedBox(height: 24),
                   ],
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 100), // Khoảng trống cho Bottom Bar
                 ],
               ),
             ),
           ),
         ],
       ),
-      bottomNavigationBar: BottomAppBar(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: SafeArea(
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: _launchPreviewLink,
-                  icon: const Icon(Icons.remove_red_eye),
-                  label: const Text('Đọc sách'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.grey[200],
+                  borderRadius: BorderRadius.circular(12),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: OutlinedButton.icon(
+                child: IconButton(
                   onPressed: _toggleFavorite,
                   icon: Icon(
                     _isFavorite ? Icons.favorite : Icons.favorite_border,
-                    color: _isFavorite ? Colors.red : null,
+                    color: _isFavorite ? Colors.red : Colors.grey[700],
                   ),
-                  label: Text(_isFavorite ? 'Đã yêu thích' : 'Yêu thích'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: SizedBox(
+                  height: 50,
+                  child: ElevatedButton.icon(
+                    onPressed: _launchPreviewLink,
+                    icon: const Icon(Icons.menu_book),
+                    label: const Text(
+                      'BẮT ĐẦU ĐỌC',
+                      style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).primaryColor,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
                   ),
                 ),
               ),

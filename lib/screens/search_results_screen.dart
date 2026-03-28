@@ -14,7 +14,7 @@ import 'book_detail_screen.dart';
 
 class SearchResultsScreen extends StatefulWidget {
   final String query;
-  final String? categorySearchKey; // Key tiếng Anh để search sâu
+  final String? categorySearchKey;
 
   const SearchResultsScreen({super.key, required this.query, this.categorySearchKey});
 
@@ -32,7 +32,16 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
   final ScrollController _scrollController = ScrollController();
 
   List<Book> _allBooks = [];
+  List<Book> _filteredBooks = [];
   List<Book> _queue = [];
+
+  String? _selectedCategory;
+
+  // DANH SÁCH LỌC NHANH TRÊN MÀN HÌNH KẾT QUẢ
+  final List<String> _quickFilterCategories = [
+    'Tiên Hiệp', 'Kiếm Hiệp', 'Ngôn Tình', 'Đam Mỹ', 'Xuyên Không', 'Hệ Thống', 
+    'Đô Thị', 'Trinh Thám', 'Kinh Dị', 'Lịch Sử', 'Quân Sự', 'Võng Du', 'Mạt Thế'
+  ];
 
   int _googleStartIndex = 0;
   int _truyenPage = 1;
@@ -64,11 +73,24 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
   }
 
   void _onScroll() {
-    if (!_hasMore || _isLoadingMore || _isInitialLoading) return;
+    if (!_hasMore || _isLoadingMore || _isInitialLoading || _selectedCategory != null) return;
     final pos = _scrollController.position;
     if (pos.pixels >= pos.maxScrollExtent - 240) {
       _loadMore();
     }
+  }
+
+  void _applyLocalFilter() {
+    setState(() {
+      if (_selectedCategory == null) {
+        _filteredBooks = List.from(_allBooks);
+      } else {
+        _filteredBooks = _allBooks.where((book) {
+          return book.categories.any((cat) => 
+            cat.toLowerCase().contains(_selectedCategory!.toLowerCase()));
+        }).toList();
+      }
+    });
   }
 
   Future<void> _loadInitial() async {
@@ -76,6 +98,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
       _isInitialLoading = true;
       _errorMessage = null;
       _allBooks = [];
+      _filteredBooks = [];
       _queue = [];
       _googleStartIndex = 0;
       _truyenPage = 1;
@@ -89,7 +112,6 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
     });
 
     try {
-      // Nếu có categorySearchKey, ta sẽ ưu tiên tìm kiếm theo subject trên Google/OpenLib
       String googleQuery = widget.query;
       if (widget.categorySearchKey != null) {
         googleQuery = 'subject:${widget.categorySearchKey}';
@@ -127,6 +149,8 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
         _allBooks = List.from(merged);
         _queue = [];
       }
+
+      _applyLocalFilter();
 
       _hasMore = _queue.isNotEmpty || !_googleExhausted || !_truyenExhausted || !_openLibraryExhausted || !_metruyenExhausted;
 
@@ -198,6 +222,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
       await _fetchNextChunkIntoQueue();
       if (_queue.length == before && _googleExhausted && _truyenExhausted && _openLibraryExhausted && _metruyenExhausted) break;
     }
+    _applyLocalFilter();
   }
 
   Future<void> _loadMore() async {
@@ -217,8 +242,43 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
       appBar: AppBar(
         title: Text('Kết quả: "${widget.query}"'),
         elevation: 0,
+        bottom: _isInitialLoading ? null : PreferredSize(
+          preferredSize: const Size.fromHeight(50),
+          child: _buildFilterBar(),
+        ),
       ),
       body: _buildBody(),
+    );
+  }
+
+  Widget _buildFilterBar() {
+    return Container(
+      height: 50,
+      padding: const EdgeInsets.only(bottom: 8),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: _quickFilterCategories.length,
+        itemBuilder: (context, index) {
+          final category = _quickFilterCategories[index];
+          final isSelected = _selectedCategory == category;
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: FilterChip(
+              label: Text(category, style: TextStyle(fontSize: 12, color: isSelected ? Colors.white : Colors.black87)),
+              selected: isSelected,
+              selectedColor: Colors.blue,
+              checkmarkColor: Colors.white,
+              onSelected: (selected) {
+                setState(() {
+                  _selectedCategory = selected ? category : null;
+                  _applyLocalFilter();
+                });
+              },
+            ),
+          );
+        },
+      ),
     );
   }
 
@@ -231,22 +291,40 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
         child: Padding(padding: const EdgeInsets.all(16.0), child: Text('Lỗi: $_errorMessage')),
       );
     }
-    if (_allBooks.isEmpty) {
-      return Center(child: Text(Constants.noResults));
+    if (_filteredBooks.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.filter_list_off, size: 60, color: Colors.grey),
+            const SizedBox(height: 16),
+            const Text('Không tìm thấy sách phù hợp bộ lọc.'),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _selectedCategory = null;
+                  _applyLocalFilter();
+                });
+              }, 
+              child: const Text('Xóa bộ lọc')
+            ),
+          ],
+        ),
+      );
     }
 
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.all(16),
-      itemCount: _allBooks.length + (_hasMore ? 1 : 0),
+      itemCount: _filteredBooks.length + (_hasMore && _selectedCategory == null ? 1 : 0),
       itemBuilder: (context, index) {
-        if (index >= _allBooks.length) {
+        if (index >= _filteredBooks.length) {
           return const Padding(
             padding: EdgeInsets.symmetric(vertical: 16.0),
             child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
           );
         }
-        final book = _allBooks[index];
+        final book = _filteredBooks[index];
         return Padding(
           padding: const EdgeInsets.only(bottom: 16.0),
           child: BookCard(

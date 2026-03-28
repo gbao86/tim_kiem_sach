@@ -5,7 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.0.4] - 2026-03-30
+## [2.0.5] - 2026-03-28
+
+### ✨ Thêm mới (Added)
+- **Hệ thống thể loại khổng lồ:** Mở rộng lên hơn **55+ thể loại** đầy đủ (Truyện tranh, Tiên Hiệp, Ngôn Tình Ngược/Sủng, Mạt Thế, Cung Đấu, Điền Văn...).
+- **Giao diện khám phá tối ưu:** 
+  - Trang chủ chuyển sang giao diện Grid 4 cột hiện đại với màu sắc Pastel và icon định danh.
+  - Nút "Xem tất cả" mở rộng qua BottomSheet với bố cục `Wrap` thông minh, tự động co giãn theo độ dài chữ, không bao giờ bị cắt chữ.
+- **Trải nghiệm người dùng (UX):** 
+  - Chuyển nút "Bắt đầu đọc" và "Yêu thích" xuống **Persistent Bottom Bar** trong màn hình chi tiết, giúp truy cập nhanh mà không cần cuộn trang.
+  - Thêm nút "Làm mới" (Refresh) và tính năng nhấn trực tiếp vào sách trong phần Gợi ý hôm nay.
+
+### 🛡️ Bảo mật & Hệ thống (Security & Core)
+- **Chặn quảng cáo Pro Max V5:** Nâng cấp bộ lọc Javascript sử dụng `MutationObserver` để tiêu diệt quảng cáo động (Shopee overlay, popup...) ngay khi xuất hiện mà không gây lag máy.
+- **Tối ưu Reader:** Ép Google Books sử dụng trình xem nhúng (Embedded Viewer) chuẩn quốc tế, dọn dẹp sạch sẽ các thanh menu và nút mua hàng của Google.
+- **Bảo mật API Key:** Ẩn thành công Google API Key vào `local.properties` và cấu hình `build.gradle.kts` để bảo vệ mã nguồn.
+- **Giấy phép & Chính sách:** Chuyển sang giấy phép **GNU GPL v3** chặt chẽ hơn và thêm tệp `SECURITY.md`.
+
+### 🛠 Sửa lỗi (Fixed)
+- **Lỗi hiển thị:** Khắc phục triệt để lỗi `RenderFlex overflow` trên các ô lưới thể loại bằng cách điều chỉnh `childAspectRatio`.
+- **Java Compatibility:** Sửa lỗi cảnh báo `source value 8 is obsolete` bằng cách ép buộc toàn bộ project sử dụng Java 11.
+- **Chia sẻ:** Sửa lỗi cú pháp thư viện `share_plus` khiến tính năng chia sẻ sách bị treo.
+
+---
+
+## [2.0.4] - 2026-03-28
 
 ### ✨ Thêm mới (Added)
 - **Đa nguồn dữ liệu cực lớn:** Tích hợp thêm **Open Library API** (sách quốc tế/học thuật) và **Mê Truyện Chữ Scraper** (kho truyện chữ Việt Nam khổng lồ).
@@ -19,7 +43,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Tính ổn định:** Cải thiện cơ chế `Future.wait` để app không bị treo nếu một trong các nguồn API gặp lỗi hoặc timeout.
 
 ---
-
 ## [2.0.3] - 2026-03-28
 
 ### ✨ Thêm mới (Added)
@@ -40,6 +63,75 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`isAdmin()`:** Ưu tiên `firestoreRole` đã cache khi có.
 
 ---
-
 ## [2.0.2] - 2026-03-26
-... (giữ nguyên phần còn lại)
+
+### ✨ Thêm mới (Added)
+- **Hệ thống xác thực:** Tích hợp phương thức đăng nhập và đăng ký bằng Email/Mật khẩu bên cạnh Google Sign-In.
+- **Bộ lọc người dùng:** Thêm tính năng sắp xếp danh sách theo Tên (A-Z), Thời gian tạo (Mới nhất/Cũ nhất) và Lọc theo quyền Quản trị viên.
+- **Tương tác biểu đồ:** Thêm hiệu ứng chạm (Touch interaction) cho biểu đồ tròn, hiển thị số lượt cụ thể khi nhấn vào từng phần.
+- **Thoát ứng dụng:** Nút "Quay lại sau" tại màn hình đăng nhập giờ đây cho phép thoát ứng dụng an toàn qua hệ thống.
+
+### 🎨 Cải thiện giao diện (UI/UX)
+- **Tối ưu tốc độ:** Rút ngắn thời gian Animation màn hình Login giúp cảm giác ứng dụng phản hồi nhanh hơn.
+- **Dashboard Admin:** Thiết kế lại trang Phân tích (Analytics) theo phong cách hiện đại, sử dụng thẻ Card bo góc và màu sắc đồng bộ.
+- **Chú thích biểu đồ:** Thêm bảng chú thích (Legend) cho tất cả biểu đồ tròn và biểu đồ cột để dễ dàng theo dõi dữ liệu.
+- **Quản lý người dùng:** Nâng cấp giao diện danh sách User với Huy hiệu quyền (Role Badge) và các nút hành động trực quan.
+
+### 🛠 Sửa lỗi (Fixed)
+- **Lỗi tràn viền (Overflow):** Khắc phục triệt để lỗi hiển thị trên các thiết bị màn hình hẹp (4.4px overflow).
+- **Lỗi hình ảnh:** Sửa lỗi "Invalid image data" khi tải logo Google bằng cách chuyển sang định dạng PNG.
+- **Lỗi màn hình đen:** Sửa lỗi điều hướng khiến màn hình bị đen sau khi đăng nhập thành công.
+- **Lỗi hiển thị biểu đồ:** Sửa lỗi Tooltip bị che khuất khi nhấn vào các cột dữ liệu cao nhất.
+
+---
+
+## [2.0.0] - 2026-03-25
+
+### Added
+- **Multi-source Search**: Tích hợp bộ cào dữ liệu (**TruyenFull Scraper**) mở rộng kho truyện chữ Việt Nam (Tiên hiệp, Ngôn tình, Kiếm hiệp...).
+- **In-app Reader Pro**: Trình đọc sách tràn viền (Full-screen), loại bỏ hoàn toàn khoảng trắng dư thừa ở AppBar.
+- **Smart Ad-Blocker**: Hệ thống chặn quảng cáo đa tầng (CSS + JS Patrol) tự động tiêu diệt popup và banner quảng cáo theo thời gian thực.
+- **Auto Dark Mode**: Tính năng tự động đảo ngược màu sắc trang web (Smart Invert) đồng bộ với giao diện tối của ứng dụng.
+- **Navigation Tools**: Thêm nút "Lên đầu trang" (Scroll-to-top) và hệ thống nút điều hướng trong suốt cực lớn.
+- **Pinch-to-zoom**: Hỗ trợ thu phóng hai ngón tay trên Android WebView cho mọi nguồn truyện.
+
+### Changed
+- **Concurrent Search**: Tối ưu hóa hiệu năng tìm kiếm bằng cách gọi đa nguồn song song thông qua `Future.wait`.
+- **Deep Scraping**: Nâng cấp bộ cào để lấy chi tiết Thể loại, Mô tả chi tiết, Trạng thái truyện và Đánh giá người dùng.
+- **UI Optimization**: Cải thiện độ mượt khi cuộn trang (Scrolling Physics) cho trình duyệt tích hợp.
+
+### Fixed
+- Lỗi thiếu tham số `language` bắt buộc trong Model `Book`.
+- Lỗi `ERR_CLEARTEXT_NOT_PERMITTED` bằng cách ép buộc giao thức HTTPS.
+- Xử lý ngoại lệ khi nguồn dữ liệu bên thứ ba gặp lỗi kết nối (Graceful Error Handling).
+
+---
+
+## [1.0.1] - 2025-05-24
+
+### Added
+- Cập nhật chức năng thống kê nâng cao và biểu đồ phân tích dữ liệu (`fl_chart`).
+- Thêm tính năng theo dõi lưu lượng tìm kiếm từ người dùng thực tế.
+- Trực quan hóa dữ liệu sách yêu thích và lượt truy cập cho Admin.
+- Chức năng quản lý phân quyền người dùng (Admin/User) chi tiết.
+- Tích hợp logic truy xuất Firestore theo vai trò người dùng.
+- Video demo giới thiệu tính năng trên YouTube.
+
+---
+
+## [1.0.0] - 2025-05-22
+
+### Added
+- Khởi tạo các tính năng quản trị cốt lõi (Thống kê, Thông báo, Quản lý người dùng).
+- Xây dựng mô hình dữ liệu chuẩn cho `Analytics`, `FavoriteBook`, `UserModel`.
+- Tích hợp **Firebase Functions** xử lý logic backend.
+
+### Changed
+- Nâng cấp Flutter SDK lên phiên bản **3.29.2**.
+- Cập nhật toàn bộ hệ sinh thái Firebase (Core, Auth, Firestore, Messaging, Functions).
+- Tối ưu hóa Android Manifest cho Adaptive Icons và App Queries.
+
+### Fixed
+- Khắc phục lỗi `MissingPluginException` cho các thư viện `share_plus` và `url_launcher` trên Android.
+
+### Removed
