@@ -19,7 +19,7 @@ Chúng tôi rất coi trọng tính bảo mật của ứng dụng **Tìm Kiếm
     *   Mô tả chi tiết về lỗi/lỗ hổng.
     *   Các bước để tái hiện lỗi.
     *   Tác động tiềm tàng đối với người dùng hoặc hệ thống.
-
+ 
 Chúng tôi sẽ cố gắng phản hồi và xác nhận báo cáo của bạn trong vòng **72 giờ** và đưa ra bản vá sớm nhất có thể.
 
 ## Cam kết bảo mật dữ liệu
