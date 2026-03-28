@@ -82,4 +82,7 @@ Xem chi tiết lịch sử cập nhật tại file **[CHANGELOG.md](./CHANGELOG.
 3. **Run**: `flutter run`
 
 ---
+## License
+Dự án này được phát hành dưới giấy phép [GNU GPL v3](LICENSE).
+---
 > Phiên bản v2.0.4 mang đến sự lột xác về khả năng tìm kiếm và trải nghiệm người dùng. Cảm ơn bạn đã đồng hành cùng **Tìm Kiếm Sách**!
