@@ -8,7 +8,6 @@
 
 ---
 
-### 🎥 Video Demo
 ## 🎥 Video Demo & Preview
 
 Bạn có thể xem video giới thiệu tại đây:
