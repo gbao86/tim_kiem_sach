@@ -1,4 +1,4 @@
-# 📚 Tìm Kiếm Sách (Book Search App) - Ultimate Edition v2.0.4
+# 📚 Tìm Kiếm Sách (Book Search App) - Ultimate Edition v2.0.5
 
 [![Flutter](https://img.shields.io/badge/Flutter-3.29.2-blue.svg)](https://flutter.dev/)
 [![Firebase](https://img.shields.io/badge/Firebase-Powered-orange.svg)](https://firebase.google.com/)
