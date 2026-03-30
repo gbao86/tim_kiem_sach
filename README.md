@@ -2,7 +2,7 @@
 
 [![Flutter](https://img.shields.io/badge/Flutter-3.29.2-blue.svg)](https://flutter.dev/)
 [![Firebase](https://img.shields.io/badge/Firebase-Powered-orange.svg)](https://firebase.google.com/)
-[![Version](https://img.shields.io/badge/Version-2.0.4-green.svg)](#)
+[![Version](https://img.shields.io/badge/Version-2.0.5-green.svg)](#)
 
 **Tìm Kiếm Sách** là một ứng dụng di động đa nền tảng mạnh mẽ, kết hợp giữa hệ sinh thái **Flutter** và **Firebase**. Ứng dụng mang đến trải nghiệm đọc sách "tất cả trong một" nhờ khả năng tổng hợp dữ liệu từ 4 nguồn lớn cùng hệ thống lọc thể loại thông minh.
 
